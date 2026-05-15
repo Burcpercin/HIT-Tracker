@@ -8,6 +8,7 @@ require('dotenv').config()
 const authRoutes = require('./routes/authRoutes')
 const exerciseRoutes = require('./routes/exerciseRoutes')
 const sessionRoutes = require('./routes/workoutSessionRoutes')
+const quoteRoutes = require('./routes/quoteRoutes')
 const authMiddleware = require('./middleware/authMiddleware')
 
 const app = express()
@@ -19,10 +20,11 @@ app.use(express.json())
 // 3. Swagger UI 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
-// --- ROUTES (API Uç Noktaları) ---
+// --- ROUTES (Endpoints) ---
 
 // 4. Public Routes (Token gerektirmeyen)
 app.use('/api/auth', authRoutes)
+app.use('/api/quotes', quoteRoutes) // Sözlerin public olarak çekileceği rota
 
 // 5. Protected Routes (Token gerektiren, authMiddleware ile korunan)
 app.use('/api/exercises', authMiddleware, exerciseRoutes)
