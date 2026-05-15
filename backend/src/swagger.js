@@ -14,8 +14,19 @@ const options = {
         description: 'Development server',
       },
     ],
+    // JWT için güvenlik tanımı
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    // Tüm endpoint'lere varsayılan olarak uygula
+    security: [{ bearerAuth: [] }],
   },
-  // Swagger yorumlarını hangi dosyalarda arayacak
   apis: ['./src/routes/*.js'],
 }
 
