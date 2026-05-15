@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const exerciseService = require('../services/exerciseService')
+const validate = require('../middleware/validate')
 
 /**
  * @swagger
@@ -15,6 +16,8 @@ const exerciseService = require('../services/exerciseService')
  *   get:
  *     summary: Get all exercises
  *     tags: [Exercises]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: muscleGroup
@@ -41,6 +44,8 @@ router.get('/', async (req, res) => {
  *   get:
  *     summary: Get exercise by ID
  *     tags: [Exercises]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -68,6 +73,8 @@ router.get('/:id', async (req, res) => {
  *   post:
  *     summary: Create a new exercise
  *     tags: [Exercises]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -91,7 +98,7 @@ router.get('/:id', async (req, res) => {
  *       400:
  *         description: Validation error
  */
-router.post('/', async (req, res) => {
+router.post('/', validate.exercise, async (req, res) => {
   try {
     const exercise = await exerciseService.createExercise(req.body)
     res.status(201).json(exercise)
@@ -106,6 +113,8 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Update an exercise
  *     tags: [Exercises]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -124,7 +133,7 @@ router.post('/', async (req, res) => {
  *       400:
  *         description: Validation error
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate.exercise, async (req, res) => {
   try {
     const exercise = await exerciseService.updateExercise(req.params.id, req.body)
     res.json(exercise)
@@ -139,6 +148,8 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Delete an exercise
  *     tags: [Exercises]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const authService = require('../services/authService')
+const validate = require('../middleware/validate')
 
 /**
  * @swagger
@@ -29,14 +30,13 @@ const authService = require('../services/authService')
  *                 type: string
  *               password:
  *                 type: string
- *                 minimum: 6
  *     responses:
  *       201:
  *         description: User registered successfully
  *       400:
  *         description: Validation error
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validate.register, async (req, res) => {
   try {
     const { username, email, password } = req.body
     const result = await authService.register(username, email, password)

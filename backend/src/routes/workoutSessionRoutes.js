@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const workoutSessionService = require('../services/workoutSessionService')
+const validate = require('../middleware/validate')
 
 /**
  * @swagger
@@ -64,7 +65,7 @@ router.get('/recovery/:muscleGroup', async (req, res) => {
  * @swagger
  * /api/sessions/{id}:
  *   get:
- *     summary: Get session by ID with exercises
+ *     summary: Get session by ID with all exercises
  *     tags: [WorkoutSessions]
  *     security:
  *       - bearerAuth: []
@@ -76,7 +77,7 @@ router.get('/recovery/:muscleGroup', async (req, res) => {
  *           type: integer
  *     responses:
  *       200:
- *         description: Session details
+ *         description: Session with exercises
  *       404:
  *         description: Session not found
  */
@@ -110,6 +111,7 @@ router.get('/:id', async (req, res) => {
  *               session_date:
  *                 type: string
  *                 format: date
+ *                 example: "2026-05-15"
  *               notes:
  *                 type: string
  *               duration_minutes:
@@ -117,8 +119,10 @@ router.get('/:id', async (req, res) => {
  *     responses:
  *       201:
  *         description: Session created
+ *       400:
+ *         description: Validation error
  */
-router.post('/', async (req, res) => {
+router.post('/', validate.session, async (req, res) => {
   try {
     const session = await workoutSessionService.createSession(
       req.user.userId, req.body
@@ -133,7 +137,7 @@ router.post('/', async (req, res) => {
  * @swagger
  * /api/sessions/{id}/exercises:
  *   post:
- *     summary: Add exercise to session (checks progressive overload)
+ *     summary: Add exercise to a session
  *     tags: [WorkoutSessions]
  *     security:
  *       - bearerAuth: []
@@ -155,6 +159,7 @@ router.post('/', async (req, res) => {
  *                 type: integer
  *               weight_kg:
  *                 type: number
+ *                 example: 100.5
  *               reps:
  *                 type: integer
  *               reached_failure:
@@ -162,8 +167,10 @@ router.post('/', async (req, res) => {
  *     responses:
  *       201:
  *         description: Exercise added with Mentzer analysis
+ *       400:
+ *         description: Validation error
  */
-router.post('/:id/exercises', async (req, res) => {
+router.post('/:id/exercises', validate.sessionExercise, async (req, res) => {
   try {
     const result = await workoutSessionService.addExerciseToSession(
       req.params.id, req.user.userId, req.body
@@ -194,11 +201,19 @@ router.post('/:id/exercises', async (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             properties:
+ *               session_date:
+ *                 type: string
+ *                 format: date
+ *               notes:
+ *                 type: string
+ *               duration_minutes:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Session updated
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate.session, async (req, res) => {
   try {
     const session = await workoutSessionService.updateSession(
       req.params.id, req.user.userId, req.body
@@ -226,6 +241,8 @@ router.put('/:id', async (req, res) => {
  *     responses:
  *       200:
  *         description: Session deleted
+ *       404:
+ *         description: Not found
  */
 router.delete('/:id', async (req, res) => {
   try {

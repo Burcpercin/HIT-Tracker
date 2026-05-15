@@ -4,29 +4,31 @@ const swaggerUi = require('swagger-ui-express')
 const swaggerSpec = require('./swagger')
 require('dotenv').config()
 
-// 1. Route ve Middleware
+// 1. Route ve Middleware Importları
 const authRoutes = require('./routes/authRoutes')
 const exerciseRoutes = require('./routes/exerciseRoutes')
+const sessionRoutes = require('./routes/workoutSessionRoutes')
 const authMiddleware = require('./middleware/authMiddleware')
 
 const app = express()
 
-// Global Middleware'ler
+// 2. Global Middleware'ler
 app.use(cors())
-app.use(express.json()) // JSON verilerini okuyabilmek için şart
+app.use(express.json())
 
-// Swagger UI
+// 3. Swagger UI 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
-// --- ROUTES (Endpoints) ---
+// --- ROUTES (API Uç Noktaları) ---
 
-// 4. Public Routes (Token gerektirmeyen, herkesin erişebildiği rotalar)
+// 4. Public Routes (Token gerektirmeyen)
 app.use('/api/auth', authRoutes)
 
-// 5. Protected Routes (authMiddleware ile korunan rotalar)
+// 5. Protected Routes (Token gerektiren, authMiddleware ile korunan)
 app.use('/api/exercises', authMiddleware, exerciseRoutes)
+app.use('/api/sessions', authMiddleware, sessionRoutes)
 
-// 6. Health Check (Sunucunun ayakta olduğunu test etmek için)
+// 6. Health Check 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'HIT Tracker is running' })
 })
