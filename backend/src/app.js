@@ -9,7 +9,8 @@ const authRoutes = require('./routes/authRoutes')
 const exerciseRoutes = require('./routes/exerciseRoutes')
 const sessionRoutes = require('./routes/workoutSessionRoutes')
 const quoteRoutes = require('./routes/quoteRoutes')
-const calorieRoutes = require('./routes/calorieRoutes') // Yeni eklenen kalori rotası
+const calorieRoutes = require('./routes/calorieRoutes')
+const programRoutes = require('./routes/programRoutes')
 const authMiddleware = require('./middleware/authMiddleware')
 
 const app = express()
@@ -30,7 +31,8 @@ app.use('/api/quotes', quoteRoutes)
 // 5. Protected Routes (Token gerektiren, authMiddleware ile korunan)
 app.use('/api/exercises', authMiddleware, exerciseRoutes)
 app.use('/api/sessions', authMiddleware, sessionRoutes)
-app.use('/api/calories', authMiddleware, calorieRoutes) // Kalori rotası (Korumalı)
+app.use('/api/calories', authMiddleware, calorieRoutes)
+app.use('/api/programs', authMiddleware, programRoutes)
 
 // 6. Health Check 
 app.get('/health', (req, res) => {
