@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes')
 const exerciseRoutes = require('./routes/exerciseRoutes')
 const sessionRoutes = require('./routes/workoutSessionRoutes')
 const quoteRoutes = require('./routes/quoteRoutes')
+const calorieRoutes = require('./routes/calorieRoutes') // Yeni eklenen kalori rotası
 const authMiddleware = require('./middleware/authMiddleware')
 
 const app = express()
@@ -24,11 +25,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // 4. Public Routes (Token gerektirmeyen)
 app.use('/api/auth', authRoutes)
-app.use('/api/quotes', quoteRoutes) // Sözlerin public olarak çekileceği rota
+app.use('/api/quotes', quoteRoutes) 
 
 // 5. Protected Routes (Token gerektiren, authMiddleware ile korunan)
 app.use('/api/exercises', authMiddleware, exerciseRoutes)
 app.use('/api/sessions', authMiddleware, sessionRoutes)
+app.use('/api/calories', authMiddleware, calorieRoutes) // Kalori rotası (Korumalı)
 
 // 6. Health Check 
 app.get('/health', (req, res) => {
