@@ -429,18 +429,18 @@ function buildSummaryStep() {
 
   // Aktivite seviyesi → okunabilir metin
   const activityLabels = {
-    sedentary: '🪑 Sedentary',
-    light: '🚶 Light',
-    moderate: '🏃 Moderate',
-    active: '💪 Active',
-    very_active: '🔥 Very Active'
+    sedentary: '<i class="fa-solid fa-chair"></i> Sedentary',
+    light: '<i class="fa-solid fa-person-walking"></i> Light',
+    moderate: '<i class="fa-solid fa-person-running"></i> Moderate',
+    active: '<i class="fa-solid fa-dumbbell"></i> Active',
+    very_active: '<i class="fa-solid fa-fire"></i> Very Active'
   }
 
   const goalLabels = {
-    muscle_gain: '💪 Build Muscle',
-    fat_loss: '🔥 Burn Fat',
-    strength: '🏋️ Get Stronger',
-    endurance: '🏅 Endurance'
+    muscle_gain: '<i class="fa-solid fa-dumbbell"></i> Build Muscle',
+    fat_loss: '<i class="fa-solid fa-fire"></i> Burn Fat',
+    strength: '<i class="fa-solid fa-weight-hanging"></i> Get Stronger',
+    endurance: '<i class="fa-solid fa-heart-pulse"></i> Endurance'
   }
 
   // Özet HTML'ini oluştur
@@ -516,7 +516,7 @@ async function obFinish() {
     showView('dashboard')
 
   } catch (err) {
-    document.getElementById('ob-finish').textContent = 'Start Training! 💪'
+    document.getElementById('ob-finish').innerHTML = '<i class="fa-solid fa-dumbbell"></i> Start Training!'
     document.getElementById('ob-finish').disabled = false
     showError('onboarding-error', err.message)
   }
@@ -585,7 +585,7 @@ function renderRecentSessions(sessions) {
   if (!sessions || sessions.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <span class="empty-icon">🏋️</span>
+        <span class="empty-icon"><i class="fa-solid fa-dumbbell"></i></span>
         <p>No sessions yet. Start training!</p>
       </div>
     `
@@ -611,7 +611,7 @@ function renderActiveProgram(program) {
   if (!program) {
     container.innerHTML = `
       <div class="empty-state">
-        <span class="empty-icon">📋</span>
+        <span class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></span>
         <p>No active program. Create one!</p>
       </div>
     `
@@ -619,10 +619,10 @@ function renderActiveProgram(program) {
   }
 
   const goalLabels = {
-    muscle_gain: '💪 Build Muscle',
-    fat_loss: '🔥 Burn Fat',
-    strength: '🏋️ Strength',
-    endurance: '🏅 Endurance'
+    muscle_gain: '<i class="fa-solid fa-dumbbell"></i> Build Muscle',
+    fat_loss: '<i class="fa-solid fa-fire"></i> Burn Fat',
+    strength: '<i class="fa-solid fa-weight-hanging"></i> Strength',
+    endurance: '<i class="fa-solid fa-heart-pulse"></i> Endurance'
   }
 
   container.innerHTML = `
@@ -653,6 +653,201 @@ function formatDate(dateStr) {
 }
 
 // ============================================
+// KISIM 8: EXERCISES
+// ============================================
+
+// Tüm egzersizleri tut — arama için lazım
+let allExercises = []
+
+async function loadExercises() {
+  const container = document.getElementById('exercise-list')
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>'
+
+  try {
+    allExercises = await apiRequest('/exercises')
+    renderExercises(allExercises)
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`
+  }
+}
+
+// Egzersizleri ekrana çiz
+function renderExercises(exercises) {
+  const container = document.getElementById('exercise-list')
+
+  if (exercises.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon"><i class="fa-solid fa-dumbbell"></i></span>
+        <p>No exercises yet. Add your first one!</p>
+      </div>
+    `
+    return
+  }
+
+  container.innerHTML = exercises.map(ex => `
+    <div class="list-card">
+      <div class="list-card-info">
+        <h4>${ex.name}</h4>
+        <p>
+          <span class="badge badge-gold">${ex.muscle_group}</span>
+          · Rest: ${ex.required_rest_days} days
+          ${ex.description ? `· ${ex.description.substring(0, 60)}...` : ''}
+        </p>
+      </div>
+      <div class="list-card-actions">
+        <button class="btn-icon edit" onclick="editExercise(${ex.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn-icon" onclick="deleteExercise(${ex.id}, '${ex.name}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('')
+}
+
+// Arama — her harf girişinde çalışır
+// Backend'e istek atmaz, elimizdeki veriyi filtreler
+function searchExercises() {
+  const query = document.getElementById('exercise-search').value.toLowerCase().trim()
+
+  if (!query) {
+    renderExercises(allExercises)
+    return
+  }
+
+  const filtered = allExercises.filter(ex =>
+    ex.name.toLowerCase().includes(query) ||
+    ex.muscle_group.toLowerCase().includes(query)
+  )
+
+  renderExercises(filtered)
+}
+
+async function createExercise() {
+  const name = document.getElementById('ex-name').value.trim()
+  const muscle_group = document.getElementById('ex-muscle').value.trim()
+  const description = document.getElementById('ex-desc').value.trim()
+  const required_rest_days = parseInt(document.getElementById('ex-rest').value)
+
+  // Frontend validasyon
+  if (!name || name.length < 2) {
+    showError('exercise-form-error', 'Name must be at least 2 characters')
+    return
+  }
+  if (!muscle_group || muscle_group.length < 2) {
+    showError('exercise-form-error', 'Muscle group is required')
+    return
+  }
+  if (!required_rest_days || required_rest_days < 3) {
+    showError('exercise-form-error', 'Rest days must be at least 3 (Mentzer rule!)')
+    return
+  }
+  if (required_rest_days > 14) {
+    showError('exercise-form-error', 'Rest days cannot exceed 14')
+    return
+  }
+
+  try {
+    await apiRequest('/exercises', 'POST', {
+      name, muscle_group, description, required_rest_days
+    })
+
+    // Formu temizle ve kapat
+    clearExerciseForm()
+    toggleForm('exercise-form')
+
+    // Listeyi yenile
+    await loadExercises()
+
+  } catch (err) {
+    showError('exercise-form-error', err.message)
+  }
+}
+
+// Düzenleme moduna geç
+// Formu doldur ve save butonunu güncelle
+function editExercise(id) {
+  const ex = allExercises.find(e => e.id === id)
+  if (!ex) return
+
+  // Formu aç ve doldur
+  document.getElementById('exercise-form').classList.remove('hidden')
+  document.getElementById('ex-name').value = ex.name
+  document.getElementById('ex-muscle').value = ex.muscle_group
+  document.getElementById('ex-desc').value = ex.description || ''
+  document.getElementById('ex-rest').value = ex.required_rest_days
+
+  // Başlığı değiştir
+  document.querySelector('#exercise-form h3').textContent = 'Edit Exercise'
+
+  // Save butonunu güncelleme moduna al
+  // onclick'i değiştirerek hangi id'yi güncelleyeceğini söylüyoruz
+  const saveBtn = document.querySelector('#exercise-form .btn-primary')
+  saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update'
+  saveBtn.setAttribute('onclick', `updateExercise(${id})`)
+
+  // Sayfayı forma kaydır
+  document.getElementById('exercise-form').scrollIntoView({ behavior: 'smooth' })
+}
+
+async function updateExercise(id) {
+  const name = document.getElementById('ex-name').value.trim()
+  const muscle_group = document.getElementById('ex-muscle').value.trim()
+  const description = document.getElementById('ex-desc').value.trim()
+  const required_rest_days = parseInt(document.getElementById('ex-rest').value)
+
+  // Frontend validasyon
+  if (!name || name.length < 2) {
+    showError('exercise-form-error', 'Name must be at least 2 characters')
+    return
+  }
+  if (!muscle_group) {
+    showError('exercise-form-error', 'Muscle group is required')
+    return
+  }
+  if (required_rest_days < 3 || required_rest_days > 14) {
+    showError('exercise-form-error', 'Rest days must be between 3-14')
+    return
+  }
+
+  try {
+    await apiRequest(`/exercises/${id}`, 'PUT', {
+      name, muscle_group, description, required_rest_days
+    })
+
+    // Formu sıfırla
+    clearExerciseForm()
+    toggleForm('exercise-form')
+    await loadExercises()
+
+  } catch (err) {
+    showError('exercise-form-error', err.message)
+  }
+}
+
+async function deleteExercise(id, name) {
+  // Silmeden önce onay al
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
+
+  try {
+    await apiRequest(`/exercises/${id}`, 'DELETE')
+    await loadExercises()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
+}
+
+// Formu sıfırla — create moduna geri dön
+function clearExerciseForm() {
+  document.getElementById('ex-name').value = ''
+  document.getElementById('ex-muscle').value = ''
+  document.getElementById('ex-desc').value = ''
+  document.getElementById('ex-rest').value = '5'
+  document.querySelector('#exercise-form h3').textContent = 'New Exercise'
+  const saveBtn = document.querySelector('#exercise-form .btn-primary')
+  saveBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Save'
+  saveBtn.setAttribute('onclick', 'createExercise()')
+  hideError('exercise-form-error')
+}
+// ============================================
 // KISIM 9: WORKOUT SESSIONS
 // ============================================
 
@@ -676,7 +871,7 @@ function renderSessions(sessions) {
   if (sessions.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <span class="empty-icon">🏋️</span>
+        <span class="empty-icon"><i class="fa-solid fa-dumbbell"></i></span>
         <p>No sessions yet. Log your first workout!</p>
       </div>
     `
@@ -700,15 +895,13 @@ function renderSessions(sessions) {
           onclick="openSessionDetail(${s.id})">
           Details
         </button>
-        <button class="btn-icon" onclick="deleteSession(${s.id})" title="Delete">🗑️</button>
+        <button class="btn-icon" onclick="deleteSession(${s.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
 
-    <!-- Session detay paneli — başta gizli -->
     <div id="session-detail-${s.id}" class="hidden">
       <div class="form-card" style="margin-top: -12px; border-top: none; border-radius: 0 0 12px 12px">
 
-        <!-- Bu seans için egzersiz ekle -->
         <h4 style="margin-bottom: 16px; color: var(--accent)">Add Exercise to Session</h4>
         <div class="form-group">
           <label>Exercise</label>
@@ -730,22 +923,20 @@ function renderSessions(sessions) {
           <label>Reached Failure?</label>
           <div class="choice-buttons">
             <button class="choice-btn" onclick="selectChoice('failure_${s.id}','true',this)">
-              ✅ Yes — Mentzer approved!
+              <i class="fa-solid fa-check"></i> Yes — Mentzer approved!
             </button>
             <button class="choice-btn" onclick="selectChoice('failure_${s.id}','false',this)">
-              ❌ No
+              <i class="fa-solid fa-xmark"></i> No
             </button>
           </div>
         </div>
         <div id="ses-ex-error-${s.id}" class="error-msg hidden"></div>
         <button class="btn-primary" onclick="addExerciseToSession(${s.id})">
-          Add Exercise
+          <i class="fa-solid fa-plus"></i> Add Exercise
         </button>
 
-        <!-- Bu seansa eklenmiş egzersizler -->
         <div id="ses-exercises-${s.id}" style="margin-top: 20px"></div>
 
-        <!-- Recovery kontrolü -->
         <div id="recovery-status-${s.id}" style="margin-top: 12px"></div>
       </div>
     </div>
@@ -816,7 +1007,7 @@ async function loadSessionExercises(sessionId) {
             <p>
               ${ex.weight_kg}kg · ${ex.reps} reps ·
               <span class="${ex.reached_failure ? 'badge badge-green' : ''}">
-                ${ex.reached_failure ? '✅ Failure reached' : '❌ No failure'}
+                ${ex.reached_failure ? '<i class="fa-solid fa-check"></i> Failure reached' : '<i class="fa-solid fa-xmark"></i> No failure'}
               </span>
             </p>
           </div>
@@ -908,7 +1099,7 @@ async function addExerciseToSession(sessionId) {
       recoveryDiv.innerHTML = `
         <div class="error-msg" style="background: rgba(232,197,71,0.1); 
           border-color: rgba(232,197,71,0.3); color: var(--accent)">
-          ⚡ ${result.progressWarning}
+          <i class="fa-solid fa-bolt"></i> ${result.progressWarning}
         </div>
       `
     }
@@ -961,7 +1152,7 @@ function renderPrograms(programs) {
   if (programs.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <span class="empty-icon">📋</span>
+        <span class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></span>
         <p>No programs yet. Create your first HIT program!</p>
       </div>
     `
@@ -969,10 +1160,10 @@ function renderPrograms(programs) {
   }
 
   const goalLabels = {
-    muscle_gain: '💪 Build Muscle',
-    fat_loss: '🔥 Burn Fat',
-    strength: '🏋️ Strength',
-    endurance: '🏅 Endurance'
+    muscle_gain: '<i class="fa-solid fa-dumbbell"></i> Build Muscle',
+    fat_loss: '<i class="fa-solid fa-fire"></i> Burn Fat',
+    strength: '<i class="fa-solid fa-weight-hanging"></i> Strength',
+    endurance: '<i class="fa-solid fa-heart-pulse"></i> Endurance'
   }
 
   container.innerHTML = programs.map(p => `
@@ -995,15 +1186,14 @@ function renderPrograms(programs) {
       </div>
       <div class="list-card-actions">
         ${!p.is_active
-          ? `<button class="btn-icon edit" onclick="activateProgram(${p.id})" title="Set Active">⭐</button>`
+          ? `<button class="btn-icon edit" onclick="activateProgram(${p.id})" title="Set Active"><i class="fa-solid fa-star"></i></button>`
           : ''}
-        <button class="btn-icon edit" onclick="openProgramDetail(${p.id})" title="Manage">📝</button>
-        <button class="btn-icon" onclick="deleteProgram(${p.id}, '${p.name}')" title="Delete">🗑️</button>
+        <button class="btn-icon edit" onclick="openProgramDetail(${p.id})" title="Manage"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn-icon" onclick="deleteProgram(${p.id}, '${p.name}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
 
-    <!-- Program detay paneli -->
-    <div id="program-detail-${p.id}" class="hidden">
+   <div id="program-detail-${p.id}" class="hidden">
       <div class="form-card" style="margin-top: -12px; border-top: none; border-radius: 0 0 12px 12px">
 
         <h4 style="color: var(--accent); margin-bottom: 16px">
@@ -1054,10 +1244,9 @@ function renderPrograms(programs) {
         <div id="prog-ex-error-${p.id}" class="error-msg hidden"></div>
 
         <button class="btn-primary" onclick="addExerciseToProgram(${p.id})">
-          Add to Program
+          <i class="fa-solid fa-plus"></i> Add to Program
         </button>
 
-        <!-- Program egzersiz listesi -->
         <div id="prog-exercises-${p.id}" style="margin-top: 20px"></div>
       </div>
     </div>
@@ -1135,7 +1324,7 @@ async function loadProgramExercises(programId) {
               </div>
               <button class="btn-icon" 
                 onclick="removeExerciseFromProgram(${programId}, ${ex.id})" 
-                title="Remove">🗑️
+                title="Remove"><i class="fa-solid fa-trash"></i>
               </button>
             </div>
           `).join('')}
@@ -1236,7 +1425,7 @@ async function addExerciseToProgram(programId) {
       errorDiv.style.background = 'rgba(232,197,71,0.1)'
       errorDiv.style.borderColor = 'rgba(232,197,71,0.3)'
       errorDiv.style.color = 'var(--accent)'
-      errorDiv.textContent = `⚡ ${result.warning}`
+      errorDiv.innerHTML = `<i class="fa-solid fa-bolt"></i> ${result.warning}`
       errorDiv.classList.remove('hidden')
     }
 
@@ -1326,7 +1515,7 @@ async function getAISuggestion() {
   // Loading göster
   // Gemini birkaç saniye sürebilir
   const btn = document.querySelector('#ai-suggestion-view .btn-primary')
-  btn.textContent = '🤖 Generating your plan...'
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating your plan...'
   btn.disabled = true
   hideError('ai-error')
 
@@ -1362,14 +1551,14 @@ async function getAISuggestion() {
     // Profil yoksa özel mesaj
     if (err.message.includes('Profile not found')) {
       showError('ai-error',
-        '⚠️ Please create your profile first. Go to Dashboard and complete your profile.'
+        '<i class="fa-solid fa-triangle-exclamation"></i> Please create your profile first. Go to Dashboard and complete your profile.'
       )
     } else {
       showError('ai-error', err.message)
     }
   } finally {
     // Her durumda butonu geri getir
-    btn.textContent = '🤖 Generate My Plan'
+    btn.innerHTML = '<i class="fa-solid fa-microchip"></i> Generate My Plan'
     btn.disabled = false
   }
 }
@@ -1386,7 +1575,7 @@ async function saveAIProgram() {
 
   try {
     const saveBtn = document.querySelector('#ai-result .btn-primary')
-    saveBtn.textContent = 'Saving...'
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...'
     saveBtn.disabled = true
 
     await apiRequest('/ai/workout-suggestion/save', 'POST', {
@@ -1397,14 +1586,14 @@ async function saveAIProgram() {
     })
 
     // Başarı mesajı göster
-    saveBtn.textContent = '✅ Saved!'
+    saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> Saved!'
     saveBtn.style.background = 'var(--success)'
     saveBtn.style.color = '#000'
 
     // 2 saniye sonra programs sayfasına git
     setTimeout(() => {
       showView('programs')
-      saveBtn.textContent = 'Save Program'
+      saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Program'
       saveBtn.disabled = false
       saveBtn.style.background = ''
       saveBtn.style.color = ''
@@ -1413,7 +1602,7 @@ async function saveAIProgram() {
   } catch (err) {
     alert(`Error: ${err.message}`)
     const saveBtn = document.querySelector('#ai-result .btn-primary')
-    saveBtn.textContent = 'Save Program'
+    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Program'
     saveBtn.disabled = false
   }
 }
