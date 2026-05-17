@@ -6,11 +6,11 @@
   "directories": {
     "test": "tests"
   },
- "scripts": {
+"scripts": {
   "start": "node src/app.js",
   "dev": "nodemon src/app.js",
-  "test": "NODE_ENV=test jest --forceExit",
-  "test:coverage": "NODE_ENV=test jest --coverage --forceExit"
+  "test": "cross-env NODE_ENV=test jest --forceExit",
+  "test:coverage": "cross-env NODE_ENV=test jest --coverage --forceExit"
 },
   "keywords": [],
   "author": "",

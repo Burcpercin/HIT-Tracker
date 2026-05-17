@@ -11,6 +11,7 @@ const sessionRoutes = require('./routes/workoutSessionRoutes')
 const quoteRoutes = require('./routes/quoteRoutes')
 const calorieRoutes = require('./routes/calorieRoutes')
 const programRoutes = require('./routes/programRoutes')
+const geminiRoutes = require('./routes/geminiRoutes')
 const authMiddleware = require('./middleware/authMiddleware')
 
 const app = express()
@@ -33,6 +34,7 @@ app.use('/api/exercises', authMiddleware, exerciseRoutes)
 app.use('/api/sessions', authMiddleware, sessionRoutes)
 app.use('/api/calories', authMiddleware, calorieRoutes)
 app.use('/api/programs', authMiddleware, programRoutes)
+app.use('/api/ai', authMiddleware, geminiRoutes) // Gemini_PT rotası (Korumalı)
 
 // 6. Health Check 
 app.get('/health', (req, res) => {
