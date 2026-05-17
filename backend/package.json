@@ -6,10 +6,11 @@
   "directories": {
     "test": "tests"
   },
-  "scripts": {
+ "scripts": {
   "start": "node src/app.js",
   "dev": "nodemon src/app.js",
-  "test": "jest"
+  "test": "NODE_ENV=test jest --forceExit",
+  "test:coverage": "NODE_ENV=test jest --coverage --forceExit"
 },
   "keywords": [],
   "author": "",
@@ -26,6 +27,6 @@
     "nodemon": "^3.1.14"
   },
   "jest": {
-  "testEnvironment": "node"
-}
+    "testEnvironment": "node"
+  }
 }
