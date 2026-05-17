@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const path = require('path') // Node.js dahili path modülü eklendi
 const swaggerUi = require('swagger-ui-express')
 const swaggerSpec = require('./swagger')
 require('dotenv').config()
@@ -40,6 +41,9 @@ app.use('/api/ai', authMiddleware, geminiRoutes) // Gemini_PT rotası (Korumalı
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'HIT Tracker is running' })
 })
+
+// Frontend statik dosyalarını sunma (En alta eklendi)
+app.use(express.static(path.join(__dirname, '../../frontend')))
 
 // 7. Sunucuyu Başlatma
 const PORT = process.env.PORT || 3000
