@@ -4,6 +4,7 @@ const geminiService = require('../services/geminiService')
 const profileRepository = require('../db/profileRepository')
 const programRepository = require('../db/programRepository')
 const calorieService = require('../services/calorieService')
+const validate = require('../middleware/validate')
 
 /**
  * @swagger
@@ -15,28 +16,54 @@ const calorieService = require('../services/calorieService')
 /**
  * @swagger
  * /api/ai/workout-suggestion:
- *   get:
- *     summary: Get AI powered HIT workout suggestion
+ *   post:
+ *     summary: Get personalized HIT workout plan from AI
  *     tags: [AI Suggestions]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: goal
- *         schema:
- *           type: string
- *           enum: [muscle_gain, fat_loss, strength, endurance]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [days_per_week, goal, experience_level, equipment]
+ *             properties:
+ *               days_per_week:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 7
+ *                 example: 3
+ *               available_days:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 example: [1, 3, 5]
+ *                 description: "1=Monday, 2=Tuesday, ..., 7=Sunday"
+ *               goal:
+ *                 type: string
+ *                 enum: [muscle_gain, fat_loss, weight_loss, strength, endurance]
+ *               experience_level:
+ *                 type: string
+ *                 enum: [beginner, intermediate, advanced]
+ *               equipment:
+ *                 type: string
+ *                 enum: [gym, home, both]
+ *               injuries:
+ *                 type: string
+ *                 example: "Lower back pain, avoid heavy deadlifts"
  *     responses:
  *       200:
- *         description: AI generated workout suggestion
+ *         description: Personalized AI workout plan
+ *       400:
+ *         description: Validation error
  *       404:
  *         description: Profile not found
  *       503:
  *         description: AI service unavailable
  */
-router.get('/workout-suggestion', async (req, res) => {
+router.post('/workout-suggestion', validate.aiPreferences, async (req, res) => {
   try {
-    // Kullanıcı profili olmadan öneri yapamayız
     const profile = await profileRepository.findByUserId(req.user.userId)
     if (!profile) {
       return res.status(404).json({
@@ -44,23 +71,16 @@ router.get('/workout-suggestion', async (req, res) => {
       })
     }
 
-    // Aktif programı getir (varsa)
-    const programs = await programRepository.findAllByUser(req.user.userId)
-    const activeProgram = programs.find(p => p.is_active) || null
-
-    // Profil verisine yaş ekle
     const age = calorieService.calculateAge(profile.birth_date)
     const profileWithAge = { ...profile, age }
 
     const suggestion = await geminiService.generateWorkoutSuggestion(
       profileWithAge,
-      activeProgram,
-      req.query.goal
+      req.body
     )
 
     res.json(suggestion)
   } catch (err) {
-    // AI hatası 503 — servis geçici olarak kullanılamıyor
     res.status(503).json({ error: err.message })
   }
 })
@@ -68,24 +88,29 @@ router.get('/workout-suggestion', async (req, res) => {
 /**
  * @swagger
  * /api/ai/nutrition-tip:
- *   get:
- *     summary: Get AI powered nutrition tip based on your calorie profile
+ *   post:
+ *     summary: Get AI powered nutrition tip
  *     tags: [AI Suggestions]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: goal
- *         schema:
- *           type: string
- *           enum: [muscle_gain, fat_loss, strength, endurance]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [goal]
+ *             properties:
+ *               goal:
+ *                 type: string
+ *                 enum: [muscle_gain, fat_loss, weight_loss, strength, endurance]
  *     responses:
  *       200:
- *         description: AI generated nutrition tip
+ *         description: AI nutrition tip
  *       404:
  *         description: Profile not found
  */
-router.get('/nutrition-tip', async (req, res) => {
+router.post('/nutrition-tip', async (req, res) => {
   try {
     const profile = await profileRepository.findByUserId(req.user.userId)
     if (!profile) {
@@ -94,13 +119,14 @@ router.get('/nutrition-tip', async (req, res) => {
       })
     }
 
-    const goal = req.query.goal || 'strength'
+    const goal = req.body.goal || 'strength'
     const report = calorieService.calculateFullReport(profile, goal)
 
     const tip = await geminiService.generateNutritionTip(
       report.target_calories,
       report.macros,
-      goal
+      goal,
+      profile.weight_kg
     )
 
     res.json(tip)

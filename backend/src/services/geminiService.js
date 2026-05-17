@@ -1,86 +1,146 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 
-// API key yoksa başlarken hata ver
 if (!process.env.GEMINI_API_KEY) {
   console.warn('Warning: GEMINI_API_KEY not set. AI suggestions will not work.')
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
+// Hedef → okunabilir metin
+const GOAL_LABELS = {
+  muscle_gain: 'building muscle mass',
+  fat_loss: 'losing body fat',
+  weight_loss: 'losing weight',
+  strength: 'gaining strength',
+  endurance: 'improving endurance and conditioning'
+}
+
+// Deneyim → okunabilir metin
+const EXPERIENCE_LABELS = {
+  beginner: 'beginner (less than 1 year)',
+  intermediate: 'intermediate (1-3 years)',
+  advanced: 'advanced (3+ years)'
+}
+
+// Ekipman → okunabilir metin
+const EQUIPMENT_LABELS = {
+  gym: 'full gym with all equipment',
+  home: 'home workout with minimal equipment',
+  both: 'both gym and home equipment available'
+}
+
+// Gün numarası → isim
+const DAY_NAMES = {
+  1: 'Monday', 2: 'Tuesday', 3: 'Wednesday',
+  4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'
+}
+
 const geminiService = {
 
-  async generateWorkoutSuggestion(userProfile, currentProgram, goal) {
+  async generateWorkoutSuggestion(userProfile, preferences) {
+    const {
+      days_per_week,
+      available_days,
+      goal,
+      experience_level,
+      equipment,
+      injuries,
+    } = preferences
 
-    // Kullanıcı verilerinden prompt oluştur
-    // Ne kadar detaylı prompt → o kadar iyi cevap
+    // Müsait günleri isme çevir
+    const dayNames = available_days
+      ? available_days.map(d => DAY_NAMES[d]).join(', ')
+      : 'Not specified'
+
     const prompt = `
-      You are a fitness expert specializing in Mike Mentzer's 
-      High Intensity Training (HIT) methodology.
+      You are Mike Mentzer himself — the legend of High Intensity Training.
+      Speak with confidence and authority. Be direct, science-based, and motivating.
       
-      Create a personalized workout suggestion for this user:
+      Create a PERSONALIZED HIT workout plan for this person:
       
-      USER PROFILE:
-      - Age: ${userProfile.age} years old
-      - Weight: ${userProfile.weight_kg} kg
-      - Height: ${userProfile.height_cm} cm
-      - Gender: ${userProfile.gender}
-      - Activity Level: ${userProfile.activity_level}
-      - Goal: ${goal || 'muscle_gain'}
+      ═══ PHYSICAL PROFILE ═══
+      Age: ${userProfile.age} years old
+      Weight: ${userProfile.weight_kg} kg
+      Height: ${userProfile.height_cm} cm
+      Gender: ${userProfile.gender}
       
-      CURRENT PROGRAM:
-      ${currentProgram 
-        ? `Program Name: ${currentProgram.name}
-           Days per week: ${currentProgram.days_per_week}
-           Exercises: ${JSON.stringify(currentProgram.exercises)}`
-        : 'No current program'
-      }
+      ═══ SCHEDULE PREFERENCES ═══
+      Available days per week: ${days_per_week}
+      Preferred training days: ${dayNames}
       
-      Please provide:
-      1. A brief assessment of their current situation
-      2. A recommended HIT workout split (max 3 days/week, Mentzer style)
-      3. Top 5 exercises for their goal with sets and rest recommendations
-      4. Recovery and nutrition tips aligned with HIT principles
-      5. One motivational insight from Mike Mentzer's philosophy
+      ═══ GOALS & BACKGROUND ═══
+      Primary goal: ${GOAL_LABELS[goal] || goal}
+      Experience level: ${EXPERIENCE_LABELS[experience_level] || experience_level}
+      Available equipment: ${EQUIPMENT_LABELS[equipment] || equipment}
+      Injuries or limitations: ${injuries || 'None mentioned'}
       
-      Keep response concise and practical. Format with clear sections.
+      ═══ PROVIDE THE FOLLOWING ═══
+      
+      1. ASSESSMENT
+         Brief honest assessment of their situation and what they need.
+      
+      2. WEEKLY SCHEDULE
+         Show exactly which days they train and which days they rest.
+         Example: Monday (Train), Tuesday (Rest), Wednesday (Train)...
+      
+      3. WORKOUT PLAN
+         For each training day list:
+         - Exercise name
+         - Sets (Mentzer style: 1-2 working sets)
+         - Rep range
+         - Rest between sessions for that muscle group
+      
+      4. KEY PRINCIPLES
+         3 HIT principles they must follow for this specific goal.
+      
+      5. RECOVERY PROTOCOL
+         Sleep, rest days, and recovery tips specific to their schedule.
+      
+      6. MENTZER'S WORD
+         One powerful quote or insight from Mike Mentzer's philosophy
+         that directly applies to this person's situation.
+      
+      Be specific. No generic advice. Talk directly to this person.
+      Format clearly with the section headers shown above.
     `
 
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-      // gemini-1.5-flash → hızlı ve ücretsiz model
-
       const result = await model.generateContent(prompt)
-      const response = result.response
-      const text = response.text()
+      const text = result.response.text()
 
       return {
         suggestion: text,
         generated_at: new Date().toISOString(),
-        based_on: {
-          profile: userProfile,
-          goal: goal || 'muscle_gain',
-          has_current_program: !!currentProgram
+        preferences_used: {
+          days_per_week,
+          available_days: dayNames,
+          goal: GOAL_LABELS[goal] || goal,
+          experience_level: EXPERIENCE_LABELS[experience_level] || experience_level,
+          equipment: EQUIPMENT_LABELS[equipment] || equipment
         }
       }
     } catch (err) {
-      // Gemini API hatası tüm uygulamayı çökertmesin
       throw new Error(`AI suggestion failed: ${err.message}`)
     }
   },
 
-  async generateNutritionTip(calories, macros, goal) {
+  async generateNutritionTip(calories, macros, goal, weight_kg) {
     const prompt = `
-      As a nutrition expert following Mike Mentzer's principles,
-      give a brief, practical nutrition tip for someone with:
+      You are Mike Mentzer giving direct nutrition advice.
       
+      This person's data:
+      - Goal: ${GOAL_LABELS[goal] || goal}
+      - Body weight: ${weight_kg} kg
       - Daily calorie target: ${calories} kcal
-      - Protein: ${macros.protein_g}g
-      - Carbs: ${macros.carbs_g}g  
-      - Fat: ${macros.fat_g}g
-      - Goal: ${goal}
+      - Protein: ${macros.protein_g}g per day
+      - Carbohydrates: ${macros.carbs_g}g per day
+      - Fat: ${macros.fat_g}g per day
       
-      Give 3 specific, actionable tips. Be direct and concise.
-      Maximum 150 words.
+      Give exactly 3 specific, actionable nutrition tips for their goal.
+      Reference their exact numbers (calories, macros) in your tips.
+      Be direct. Maximum 200 words total.
+      No fluff, no generic advice.
     `
 
     try {

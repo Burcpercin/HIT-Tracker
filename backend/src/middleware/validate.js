@@ -271,6 +271,60 @@ const validate = {
 
     if (errors.length > 0) return res.status(400).json({ errors })
     next()
+  },
+
+  aiPreferences(req, res, next) {
+    const {
+      days_per_week,
+      available_days,
+      goal,
+      experience_level,
+      equipment,
+      injuries
+    } = req.body
+    const errors = []
+    const VALID_GOALS = ['muscle_gain', 'fat_loss', 'weight_loss', 'strength', 'endurance']
+    const VALID_EXPERIENCE = ['beginner', 'intermediate', 'advanced']
+    const VALID_EQUIPMENT = ['gym', 'home', 'both']
+
+    if (!days_per_week) {
+      errors.push('days_per_week is required')
+    } else {
+      const d = Number(days_per_week)
+      if (!Number.isInteger(d) || d < 1 || d > 7) {
+        errors.push('days_per_week must be between 1 and 7')
+      }
+    }
+
+    if (available_days) {
+      if (!Array.isArray(available_days)) {
+        errors.push('available_days must be an array of numbers (1-7)')
+      } else {
+        const invalid = available_days.filter(d => d < 1 || d > 7)
+        if (invalid.length > 0) {
+          errors.push('available_days values must be between 1 (Monday) and 7 (Sunday)')
+        }
+      }
+    }
+
+    if (!goal || !VALID_GOALS.includes(goal)) {
+      errors.push(`goal must be one of: ${VALID_GOALS.join(', ')}`)
+    }
+
+    if (!experience_level || !VALID_EXPERIENCE.includes(experience_level)) {
+      errors.push(`experience_level must be one of: ${VALID_EXPERIENCE.join(', ')}`)
+    }
+
+    if (!equipment || !VALID_EQUIPMENT.includes(equipment)) {
+      errors.push(`equipment must be one of: ${VALID_EQUIPMENT.join(', ')}`)
+    }
+
+    if (injuries && String(injuries).length > 300) {
+      errors.push('injuries description must be under 300 characters')
+    }
+
+    if (errors.length > 0) return res.status(400).json({ errors })
+    next()
   }
 }
 
