@@ -275,3 +275,249 @@ function logout() {
   // Login sayfasına gönder
   showView('auth')
 }
+
+// ============================================
+// KISIM 6: ONBOARDING — PROFİL ANKETİ
+// ============================================
+
+// Kart veya buton seçimi için genel fonksiyon
+// group = hangi gruba ait (gender, activity, goal...)
+// value = seçilen değer
+// element = tıklanan HTML elementi
+function selectChoice(group, value, element) {
+  // Aynı gruptaki tüm seçimlerin aktifliğini kaldır
+  const parent = element.parentElement
+  parent.querySelectorAll('.choice-btn, .activity-card, .goal-card')
+    .forEach(el => el.classList.remove('selected'))
+
+  // Tıklananı seç
+  element.classList.add('selected')
+
+  // Hangi objeye kaydedileceğine karar ver
+  if (group in onboardingData) {
+    onboardingData[group] = value
+  } else if (group in aiData) {
+    aiData[group] = value
+  }
+}
+
+// İleri butonu
+async function obNext() {
+  // Önce mevcut adımı validate et
+  const error = validateStep(currentStep)
+  if (error) {
+    showError('onboarding-error', error)
+    return
+  }
+
+  hideError('onboarding-error')
+
+  // Son adımdan önce özet ekranını hazırla
+  if (currentStep === 4) {
+    buildSummaryStep()
+  }
+
+  // Mevcut adımı gizle
+  document.getElementById(`step-${currentStep}`).classList.add('hidden')
+  currentStep++
+
+  // Yeni adımı göster
+  document.getElementById(`step-${currentStep}`).classList.remove('hidden')
+
+  // Progress bar'ı güncelle
+  updateProgress()
+
+  // Son adımdaysak butonları değiştir
+  if (currentStep === TOTAL_STEPS) {
+    document.getElementById('ob-next').classList.add('hidden')
+    document.getElementById('ob-finish').classList.remove('hidden')
+  }
+
+  // Geri butonu — ilk adımda gizli
+  document.getElementById('ob-back').classList.remove('hidden')
+}
+
+// Geri butonu
+function obBack() {
+  hideError('onboarding-error')
+
+  document.getElementById(`step-${currentStep}`).classList.add('hidden')
+  currentStep--
+  document.getElementById(`step-${currentStep}`).classList.remove('hidden')
+
+  updateProgress()
+
+  // Son adım değilsek next'i geri getir
+  document.getElementById('ob-next').classList.remove('hidden')
+  document.getElementById('ob-finish').classList.add('hidden')
+
+  // İlk adımdaysak geri butonu gizle
+  if (currentStep === 1) {
+    document.getElementById('ob-back').classList.add('hidden')
+  }
+}
+
+// Progress bar'ı güncelle
+function updateProgress() {
+  const percent = (currentStep / TOTAL_STEPS) * 100
+  document.getElementById('progress-fill').style.width = `${percent}%`
+  document.getElementById('step-current').textContent = currentStep
+}
+
+// Her adım için validasyon
+function validateStep(step) {
+  if (step === 1) {
+    const birthdate = document.getElementById('ob-birthdate').value
+    if (!birthdate) return 'Please enter your date of birth'
+
+    // Yaş kontrolü — backend ile aynı kurallar
+    const birth = new Date(birthdate)
+    const today = new Date()
+
+    if (birth > today) return 'Birth date cannot be in the future'
+    if (birth.getFullYear() < 1900) return 'Please enter a valid birth date'
+
+    let age = today.getFullYear() - birth.getFullYear()
+    const hasHadBirthday =
+      today.getMonth() > birth.getMonth() ||
+      (today.getMonth() === birth.getMonth() &&
+        today.getDate() >= birth.getDate())
+    if (!hasHadBirthday) age--
+
+    if (age < 13) return 'You must be at least 13 years old'
+    if (age > 100) return 'Please enter a valid birth date'
+
+    if (!onboardingData.gender) return 'Please select your gender'
+  }
+
+  if (step === 2) {
+    const height = document.getElementById('ob-height').value
+    const weight = document.getElementById('ob-weight').value
+
+    if (!height) return 'Please enter your height'
+    if (!weight) return 'Please enter your weight'
+    if (height < 100 || height > 250) return 'Height must be between 100-250 cm'
+    if (weight < 30 || weight > 300) return 'Weight must be between 30-300 kg'
+  }
+
+  if (step === 3) {
+    if (!onboardingData.activity) return 'Please select your activity level'
+  }
+
+  if (step === 4) {
+    if (!onboardingData.goal) return 'Please select your goal'
+  }
+
+  return null // hata yok
+}
+
+// Step 5: Özet ekranını hazırla
+function buildSummaryStep() {
+  const birthdate = document.getElementById('ob-birthdate').value
+  const height = document.getElementById('ob-height').value
+  const weight = document.getElementById('ob-weight').value
+
+  // Yaşı hesapla
+  const birth = new Date(birthdate)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const hasHadBirthday =
+    today.getMonth() > birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() &&
+      today.getDate() >= birth.getDate())
+  if (!hasHadBirthday) age--
+
+  // Aktivite seviyesi → okunabilir metin
+  const activityLabels = {
+    sedentary: '🪑 Sedentary',
+    light: '🚶 Light',
+    moderate: '🏃 Moderate',
+    active: '💪 Active',
+    very_active: '🔥 Very Active'
+  }
+
+  const goalLabels = {
+    muscle_gain: '💪 Build Muscle',
+    fat_loss: '🔥 Burn Fat',
+    strength: '🏋️ Get Stronger',
+    endurance: '🏅 Endurance'
+  }
+
+  // Özet HTML'ini oluştur
+  document.getElementById('profile-summary').innerHTML = `
+    <div class="summary-item">
+      <label>Age</label>
+      <span>${age} years old</span>
+    </div>
+    <div class="summary-item">
+      <label>Gender</label>
+      <span>${onboardingData.gender}</span>
+    </div>
+    <div class="summary-item">
+      <label>Height</label>
+      <span>${height} cm</span>
+    </div>
+    <div class="summary-item">
+      <label>Weight</label>
+      <span>${weight} kg</span>
+    </div>
+    <div class="summary-item">
+      <label>Activity</label>
+      <span>${activityLabels[onboardingData.activity]}</span>
+    </div>
+    <div class="summary-item">
+      <label>Goal</label>
+      <span>${goalLabels[onboardingData.goal]}</span>
+    </div>
+  `
+
+  // Tahmini kaloriyi hesapla (gösterim amaçlı)
+  // Basit BMR tahmini — gerçek hesap backend'de yapılıyor
+  const activityMultipliers = {
+    sedentary: 1.20, light: 1.375, moderate: 1.55,
+    active: 1.725, very_active: 1.90
+  }
+  const goalAdjustments = {
+    muscle_gain: 400, fat_loss: -500, strength: 0, endurance: 0
+  }
+
+  const base = (10 * weight) + (6.25 * height) - (5 * age) +
+    (onboardingData.gender === 'male' ? 5 : -161)
+  const tdee = Math.round(base * activityMultipliers[onboardingData.activity])
+  const target = tdee + goalAdjustments[onboardingData.goal]
+
+  document.getElementById('calorie-preview').innerHTML = `
+    <p>Estimated Daily Calories</p>
+    <div class="big-number">${target}</div>
+    <p>kcal / day for <strong>${goalLabels[onboardingData.goal]}</strong></p>
+  `
+}
+
+// Bitir butonu — profili kaydet
+async function obFinish() {
+  try {
+    document.getElementById('ob-finish').textContent = 'Saving...'
+    document.getElementById('ob-finish').disabled = true
+
+    await apiRequest('/calories/profile', 'POST', {
+      birth_date: document.getElementById('ob-birthdate').value,
+      weight_kg: parseFloat(document.getElementById('ob-weight').value),
+      height_cm: parseFloat(document.getElementById('ob-height').value),
+      gender: onboardingData.gender,
+      activity_level: onboardingData.activity
+    })
+
+    // Navbar'ı göster
+    document.getElementById('navbar').classList.remove('hidden')
+    const username = localStorage.getItem('username')
+    document.getElementById('dash-username').textContent = username
+
+    // Dashboard'a git
+    showView('dashboard')
+
+  } catch (err) {
+    document.getElementById('ob-finish').textContent = 'Start Training! 💪'
+    document.getElementById('ob-finish').disabled = false
+    showError('onboarding-error', err.message)
+  }
+}
