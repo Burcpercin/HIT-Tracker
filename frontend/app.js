@@ -651,3 +651,626 @@ function formatDate(dateStr) {
     day: 'numeric'
   })
 }
+
+// ============================================
+// KISIM 9: WORKOUT SESSIONS
+// ============================================
+
+let allSessions = []
+
+async function loadSessions() {
+  const container = document.getElementById('session-list')
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>'
+
+  try {
+    allSessions = await apiRequest('/sessions')
+    renderSessions(allSessions)
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`
+  }
+}
+
+function renderSessions(sessions) {
+  const container = document.getElementById('session-list')
+
+  if (sessions.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">🏋️</span>
+        <p>No sessions yet. Log your first workout!</p>
+      </div>
+    `
+    return
+  }
+
+  container.innerHTML = sessions.map(s => `
+    <div class="list-card">
+      <div class="list-card-info">
+        <h4>${formatDate(s.session_date)}</h4>
+        <p>
+          ${s.exercise_count || 0} exercises
+          ${s.duration_minutes ? `· ${s.duration_minutes} min` : ''}
+          ${s.notes ? `· ${s.notes.substring(0, 50)}` : ''}
+        </p>
+      </div>
+      <div class="list-card-actions">
+        <button 
+          class="btn-secondary" 
+          style="font-size:0.8rem; padding: 6px 12px"
+          onclick="openSessionDetail(${s.id})">
+          Details
+        </button>
+        <button class="btn-icon" onclick="deleteSession(${s.id})" title="Delete">🗑️</button>
+      </div>
+    </div>
+
+    <!-- Session detay paneli — başta gizli -->
+    <div id="session-detail-${s.id}" class="hidden">
+      <div class="form-card" style="margin-top: -12px; border-top: none; border-radius: 0 0 12px 12px">
+
+        <!-- Bu seans için egzersiz ekle -->
+        <h4 style="margin-bottom: 16px; color: var(--accent)">Add Exercise to Session</h4>
+        <div class="form-group">
+          <label>Exercise</label>
+          <select id="ses-ex-select-${s.id}">
+            <option value="">Select exercise...</option>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div class="form-group">
+            <label>Weight (kg)</label>
+            <input type="number" id="ses-weight-${s.id}" placeholder="100" step="0.5" min="0.5">
+          </div>
+          <div class="form-group">
+            <label>Reps</label>
+            <input type="number" id="ses-reps-${s.id}" placeholder="8" min="1" max="100">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reached Failure?</label>
+          <div class="choice-buttons">
+            <button class="choice-btn" onclick="selectChoice('failure_${s.id}','true',this)">
+              ✅ Yes — Mentzer approved!
+            </button>
+            <button class="choice-btn" onclick="selectChoice('failure_${s.id}','false',this)">
+              ❌ No
+            </button>
+          </div>
+        </div>
+        <div id="ses-ex-error-${s.id}" class="error-msg hidden"></div>
+        <button class="btn-primary" onclick="addExerciseToSession(${s.id})">
+          Add Exercise
+        </button>
+
+        <!-- Bu seansa eklenmiş egzersizler -->
+        <div id="ses-exercises-${s.id}" style="margin-top: 20px"></div>
+
+        <!-- Recovery kontrolü -->
+        <div id="recovery-status-${s.id}" style="margin-top: 12px"></div>
+      </div>
+    </div>
+  `).join('')
+
+  // Her session için egzersiz dropdown'ını doldur
+  sessions.forEach(s => {
+    fillExerciseDropdown(`ses-ex-select-${s.id}`)
+  })
+}
+
+// Egzersiz dropdown'ını doldur
+// allExercises zaten bellekte — API isteği yapmadan kullan
+function fillExerciseDropdown(selectId) {
+  const select = document.getElementById(selectId)
+  if (!select) return
+
+  select.innerHTML = '<option value="">Select exercise...</option>'
+
+  allExercises.forEach(ex => {
+    const option = document.createElement('option')
+    option.value = ex.id
+    option.textContent = `${ex.name} (${ex.muscle_group})`
+    select.appendChild(option)
+  })
+}
+
+// Session detay panelini aç/kapat
+async function openSessionDetail(sessionId) {
+  const panel = document.getElementById(`session-detail-${sessionId}`)
+  const isHidden = panel.classList.contains('hidden')
+
+  // Tüm panelleri kapat
+  document.querySelectorAll('[id^="session-detail-"]').forEach(p => {
+    p.classList.add('hidden')
+  })
+
+  if (isHidden) {
+    panel.classList.remove('hidden')
+    // Seansın detaylarını yükle (egzersizleri göster)
+    await loadSessionExercises(sessionId)
+  }
+}
+
+// Seanstaki egzersizleri yükle
+async function loadSessionExercises(sessionId) {
+  try {
+    const session = await apiRequest(`/sessions/${sessionId}`)
+    const container = document.getElementById(`ses-exercises-${sessionId}`)
+
+    if (!session.exercises || session.exercises.length === 0) {
+      container.innerHTML = `
+        <p style="color: var(--text-dim); font-size: 0.9rem">
+          No exercises logged yet.
+        </p>
+      `
+      return
+    }
+
+    container.innerHTML = `
+      <h4 style="margin-bottom: 12px; color: var(--text-secondary)">
+        Logged Exercises
+      </h4>
+      ${session.exercises.map(ex => `
+        <div class="list-card" style="margin-bottom: 8px">
+          <div class="list-card-info">
+            <h4>${ex.exercise_name}</h4>
+            <p>
+              ${ex.weight_kg}kg · ${ex.reps} reps ·
+              <span class="${ex.reached_failure ? 'badge badge-green' : ''}">
+                ${ex.reached_failure ? '✅ Failure reached' : '❌ No failure'}
+              </span>
+            </p>
+          </div>
+        </div>
+      `).join('')}
+    `
+  } catch (err) {
+    console.error('Error loading session exercises:', err)
+  }
+}
+
+async function createSession() {
+  const session_date = document.getElementById('ses-date').value
+  const duration_minutes = document.getElementById('ses-duration').value
+  const notes = document.getElementById('ses-notes').value.trim()
+
+  // Frontend validasyon
+  if (!session_date) {
+    showError('session-form-error', 'Please select a date')
+    return
+  }
+
+  if (duration_minutes && (duration_minutes < 1 || duration_minutes > 300)) {
+    showError('session-form-error', 'Duration must be between 1-300 minutes')
+    return
+  }
+
+  if (notes && notes.length > 500) {
+    showError('session-form-error', 'Notes cannot exceed 500 characters')
+    return
+  }
+
+  try {
+    await apiRequest('/sessions', 'POST', {
+      session_date,
+      duration_minutes: duration_minutes ? parseInt(duration_minutes) : null,
+      notes: notes || null
+    })
+
+    // Formu temizle ve kapat
+    document.getElementById('ses-date').value = ''
+    document.getElementById('ses-duration').value = ''
+    document.getElementById('ses-notes').value = ''
+    toggleForm('session-form')
+
+    await loadSessions()
+
+  } catch (err) {
+    showError('session-form-error', err.message)
+  }
+}
+
+async function addExerciseToSession(sessionId) {
+  const exerciseId = document.getElementById(`ses-ex-select-${sessionId}`).value
+  const weight = document.getElementById(`ses-weight-${sessionId}`).value
+  const reps = document.getElementById(`ses-reps-${sessionId}`).value
+
+  // Failure seçimi — selectChoice ile kaydedilen değer
+  // aiData objesini değil, özel bir key kullanıyoruz
+  const failureKey = `failure_${sessionId}`
+  const reachedFailure = onboardingData[failureKey] === 'true' ||
+    aiData[failureKey] === 'true'
+
+  // Frontend validasyon
+  if (!exerciseId) {
+    showError(`ses-ex-error-${sessionId}`, 'Please select an exercise')
+    return
+  }
+  if (!weight || weight <= 0) {
+    showError(`ses-ex-error-${sessionId}`, 'Please enter a valid weight')
+    return
+  }
+  if (!reps || reps < 1) {
+    showError(`ses-ex-error-${sessionId}`, 'Please enter valid reps')
+    return
+  }
+
+  try {
+    const result = await apiRequest(`/sessions/${sessionId}/exercises`, 'POST', {
+      exercise_id: parseInt(exerciseId),
+      weight_kg: parseFloat(weight),
+      reps: parseInt(reps),
+      reached_failure: reachedFailure
+    })
+
+    // Mentzer uyarısı varsa göster
+    if (result.progressWarning) {
+      const recoveryDiv = document.getElementById(`recovery-status-${sessionId}`)
+      recoveryDiv.innerHTML = `
+        <div class="error-msg" style="background: rgba(232,197,71,0.1); 
+          border-color: rgba(232,197,71,0.3); color: var(--accent)">
+          ⚡ ${result.progressWarning}
+        </div>
+      `
+    }
+
+    // Egzersiz listesini yenile
+    await loadSessionExercises(sessionId)
+
+    // Inputları temizle
+    document.getElementById(`ses-ex-select-${sessionId}`).value = ''
+    document.getElementById(`ses-weight-${sessionId}`).value = ''
+    document.getElementById(`ses-reps-${sessionId}`).value = ''
+
+  } catch (err) {
+    showError(`ses-ex-error-${sessionId}`, err.message)
+  }
+}
+
+async function deleteSession(id) {
+  if (!confirm('Delete this session? This cannot be undone.')) return
+
+  try {
+    await apiRequest(`/sessions/${id}`, 'DELETE')
+    await loadSessions()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
+}
+
+// ============================================
+// KISIM 10: WORKOUT PROGRAMS
+// ============================================
+
+let allPrograms = []
+
+async function loadPrograms() {
+  const container = document.getElementById('program-list')
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>'
+
+  try {
+    allPrograms = await apiRequest('/programs')
+    renderPrograms(allPrograms)
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`
+  }
+}
+
+function renderPrograms(programs) {
+  const container = document.getElementById('program-list')
+
+  if (programs.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p>No programs yet. Create your first HIT program!</p>
+      </div>
+    `
+    return
+  }
+
+  const goalLabels = {
+    muscle_gain: '💪 Build Muscle',
+    fat_loss: '🔥 Burn Fat',
+    strength: '🏋️ Strength',
+    endurance: '🏅 Endurance'
+  }
+
+  container.innerHTML = programs.map(p => `
+    <div class="list-card ${p.is_active ? 'active-program' : ''}">
+      <div class="list-card-info">
+        <h4>
+          ${p.name}
+          ${p.is_active ? '<span class="badge badge-active">Active</span>' : ''}
+        </h4>
+        <p>
+          ${goalLabels[p.goal] || p.goal || 'No goal set'} · 
+          ${p.days_per_week} days/week · 
+          ${p.exercise_count || 0} exercises
+        </p>
+        ${p.description
+          ? `<p style="color: var(--text-dim); font-size: 0.82rem; margin-top: 4px">
+              ${p.description.substring(0, 80)}
+             </p>`
+          : ''}
+      </div>
+      <div class="list-card-actions">
+        ${!p.is_active
+          ? `<button class="btn-icon edit" onclick="activateProgram(${p.id})" title="Set Active">⭐</button>`
+          : ''}
+        <button class="btn-icon edit" onclick="openProgramDetail(${p.id})" title="Manage">📝</button>
+        <button class="btn-icon" onclick="deleteProgram(${p.id}, '${p.name}')" title="Delete">🗑️</button>
+      </div>
+    </div>
+
+    <!-- Program detay paneli -->
+    <div id="program-detail-${p.id}" class="hidden">
+      <div class="form-card" style="margin-top: -12px; border-top: none; border-radius: 0 0 12px 12px">
+
+        <h4 style="color: var(--accent); margin-bottom: 16px">
+          Add Exercise to Program
+        </h4>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div class="form-group">
+            <label>Exercise</label>
+            <select id="prog-ex-select-${p.id}">
+              <option value="">Select exercise...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Day of Week</label>
+            <select id="prog-day-${p.id}">
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+              <option value="7">Sunday</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div class="form-group">
+            <label>Sets</label>
+            <input type="number" id="prog-sets-${p.id}" 
+              value="1" min="1" max="20"
+              placeholder="1">
+          </div>
+          <div class="form-group">
+            <label>Target Reps</label>
+            <input type="number" id="prog-reps-${p.id}" 
+              placeholder="8" min="1" max="100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <input type="text" id="prog-ex-notes-${p.id}" 
+            placeholder="e.g. Go to failure" maxlength="300">
+        </div>
+
+        <div id="prog-ex-error-${p.id}" class="error-msg hidden"></div>
+
+        <button class="btn-primary" onclick="addExerciseToProgram(${p.id})">
+          Add to Program
+        </button>
+
+        <!-- Program egzersiz listesi -->
+        <div id="prog-exercises-${p.id}" style="margin-top: 20px"></div>
+      </div>
+    </div>
+  `).join('')
+
+  // Her program için dropdown doldur
+  programs.forEach(p => {
+    fillExerciseDropdown(`prog-ex-select-${p.id}`)
+  })
+}
+
+async function openProgramDetail(programId) {
+  const panel = document.getElementById(`program-detail-${programId}`)
+  const isHidden = panel.classList.contains('hidden')
+
+  // Tüm panelleri kapat
+  document.querySelectorAll('[id^="program-detail-"]').forEach(p => {
+    p.classList.add('hidden')
+  })
+
+  if (isHidden) {
+    panel.classList.remove('hidden')
+    await loadProgramExercises(programId)
+  }
+}
+
+async function loadProgramExercises(programId) {
+  try {
+    const program = await apiRequest(`/programs/${programId}`)
+    const container = document.getElementById(`prog-exercises-${programId}`)
+
+    if (!program.exercises || program.exercises.length === 0) {
+      container.innerHTML = `
+        <p style="color: var(--text-dim); font-size: 0.9rem">
+          No exercises yet. Add some above!
+        </p>
+      `
+      return
+    }
+
+    // Egzersizleri güne göre grupla
+    // { 1: [bench press, ...], 3: [squat, ...] }
+    const byDay = {}
+    program.exercises.forEach(ex => {
+      if (!byDay[ex.day_of_week]) byDay[ex.day_of_week] = []
+      byDay[ex.day_of_week].push(ex)
+    })
+
+    const dayNames = {
+      1: 'Monday', 2: 'Tuesday', 3: 'Wednesday',
+      4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'
+    }
+
+    // Her günü ayrı başlıkla göster
+    container.innerHTML = `
+      <h4 style="margin-bottom: 12px; color: var(--text-secondary)">
+        Program Schedule
+      </h4>
+      ${Object.keys(byDay).sort().map(day => `
+        <div style="margin-bottom: 16px">
+          <p style="color: var(--accent); font-weight: 600; 
+            font-size: 0.85rem; margin-bottom: 8px; 
+            text-transform: uppercase; letter-spacing: 1px">
+            ${dayNames[day]}
+          </p>
+          ${byDay[day].map(ex => `
+            <div class="list-card" style="margin-bottom: 6px">
+              <div class="list-card-info">
+                <h4>${ex.exercise_name}</h4>
+                <p>
+                  <span class="badge badge-gold">${ex.muscle_group}</span>
+                  · ${ex.sets} set · ${ex.target_reps} reps
+                  ${ex.notes ? `· ${ex.notes}` : ''}
+                </p>
+              </div>
+              <button class="btn-icon" 
+                onclick="removeExerciseFromProgram(${programId}, ${ex.id})" 
+                title="Remove">🗑️
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    `
+  } catch (err) {
+    console.error('Error loading program exercises:', err)
+  }
+}
+
+async function createProgram() {
+  const name = document.getElementById('prog-name').value.trim()
+  const goal = document.getElementById('prog-goal').value
+  const days_per_week = parseInt(document.getElementById('prog-days').value)
+  const description = document.getElementById('prog-desc').value.trim()
+
+  // Frontend validasyon
+  if (!name || name.length < 3) {
+    showError('program-form-error', 'Program name must be at least 3 characters')
+    return
+  }
+  if (!days_per_week || days_per_week < 1 || days_per_week > 7) {
+    showError('program-form-error', 'Days per week must be between 1-7')
+    return
+  }
+  if (description && description.length > 1000) {
+    showError('program-form-error', 'Description cannot exceed 1000 characters')
+    return
+  }
+
+  try {
+    const result = await apiRequest('/programs', 'POST', {
+      name, goal, days_per_week,
+      description: description || null
+    })
+
+    // Mentzer uyarısı — 3'ten fazla gün seçildiyse
+    if (result.warning) {
+      alert(`⚡ Mentzer says: ${result.warning}`)
+    }
+
+    // Formu temizle
+    document.getElementById('prog-name').value = ''
+    document.getElementById('prog-days').value = '3'
+    document.getElementById('prog-desc').value = ''
+    toggleForm('program-form')
+
+    await loadPrograms()
+
+  } catch (err) {
+    showError('program-form-error', err.message)
+  }
+}
+
+async function activateProgram(id) {
+  try {
+    await apiRequest(`/programs/${id}/activate`, 'PATCH')
+    await loadPrograms()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
+}
+
+async function addExerciseToProgram(programId) {
+  const exerciseId = document.getElementById(`prog-ex-select-${programId}`).value
+  const day_of_week = parseInt(document.getElementById(`prog-day-${programId}`).value)
+  const sets = parseInt(document.getElementById(`prog-sets-${programId}`).value)
+  const target_reps = parseInt(document.getElementById(`prog-reps-${programId}`).value)
+  const notes = document.getElementById(`prog-ex-notes-${programId}`).value.trim()
+
+  // Frontend validasyon
+  if (!exerciseId) {
+    showError(`prog-ex-error-${programId}`, 'Please select an exercise')
+    return
+  }
+  if (!target_reps || target_reps < 1) {
+    showError(`prog-ex-error-${programId}`, 'Please enter target reps')
+    return
+  }
+  if (!sets || sets < 1 || sets > 20) {
+    showError(`prog-ex-error-${programId}`, 'Sets must be between 1-20')
+    return
+  }
+
+  try {
+    const result = await apiRequest(`/programs/${programId}/exercises`, 'POST', {
+      exercise_id: parseInt(exerciseId),
+      day_of_week,
+      sets,
+      target_reps,
+      notes: notes || null
+    })
+
+    // Mentzer uyarısı
+    if (result.warning) {
+      const errorDiv = document.getElementById(`prog-ex-error-${programId}`)
+      errorDiv.style.background = 'rgba(232,197,71,0.1)'
+      errorDiv.style.borderColor = 'rgba(232,197,71,0.3)'
+      errorDiv.style.color = 'var(--accent)'
+      errorDiv.textContent = `⚡ ${result.warning}`
+      errorDiv.classList.remove('hidden')
+    }
+
+    // Formu temizle
+    document.getElementById(`prog-ex-select-${programId}`).value = ''
+    document.getElementById(`prog-reps-${programId}`).value = ''
+    document.getElementById(`prog-ex-notes-${programId}`).value = ''
+
+    await loadProgramExercises(programId)
+
+  } catch (err) {
+    showError(`prog-ex-error-${programId}`, err.message)
+  }
+}
+
+async function removeExerciseFromProgram(programId, exerciseEntryId) {
+  if (!confirm('Remove this exercise from the program?')) return
+
+  try {
+    await apiRequest(`/programs/${programId}/exercises/${exerciseEntryId}`, 'DELETE')
+    await loadProgramExercises(programId)
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
+}
+
+async function deleteProgram(id, name) {
+  if (!confirm(`Delete program "${name}"? This cannot be undone.`)) return
+
+  try {
+    await apiRequest(`/programs/${id}`, 'DELETE')
+    await loadPrograms()
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
+}
+
