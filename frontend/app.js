@@ -521,3 +521,133 @@ async function obFinish() {
     showError('onboarding-error', err.message)
   }
 }
+
+// ============================================
+// KISIM 7: DASHBOARD
+// ============================================
+
+async function loadDashboard() {
+  // Aynı anda birden fazla isteği paralel at
+  // Promise.allSettled → biri hata verse bile diğerleri çalışır
+  const [quoteRes, sessionsRes, exercisesRes, programsRes, profileRes] =
+    await Promise.allSettled([
+      apiRequest('/quotes/random'),
+      apiRequest('/sessions'),
+      apiRequest('/exercises'),
+      apiRequest('/programs'),
+      apiRequest('/calories/profile?goal=muscle_gain')
+    ])
+
+  // Motivasyon sözü
+  if (quoteRes.status === 'fulfilled') {
+    const q = quoteRes.value
+    document.getElementById('daily-quote').innerHTML = `
+      <em>"${q.quote}"</em>
+      <strong> — ${q.author}</strong>
+    `
+  }
+
+  // İstatistikler
+  if (sessionsRes.status === 'fulfilled') {
+    document.getElementById('stat-sessions').textContent =
+      sessionsRes.value.length
+
+    // Son 3 seansı göster
+    renderRecentSessions(sessionsRes.value.slice(0, 3))
+  }
+
+  if (exercisesRes.status === 'fulfilled') {
+    document.getElementById('stat-exercises').textContent =
+      exercisesRes.value.length
+  }
+
+  if (programsRes.status === 'fulfilled') {
+    const programs = programsRes.value
+    document.getElementById('stat-programs').textContent = programs.length
+
+    // Aktif programı göster
+    const active = programs.find(p => p.is_active)
+    renderActiveProgram(active)
+  }
+
+  // Kalori hedefi
+  if (profileRes.status === 'fulfilled') {
+    const calories = profileRes.value.report?.target_calories
+    if (calories) {
+      document.getElementById('stat-calories').textContent = calories
+    }
+  }
+}
+
+function renderRecentSessions(sessions) {
+  const container = document.getElementById('recent-sessions')
+
+  if (!sessions || sessions.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">🏋️</span>
+        <p>No sessions yet. Start training!</p>
+      </div>
+    `
+    return
+  }
+
+  container.innerHTML = sessions.map(s => `
+    <div class="list-card" style="margin-bottom: 8px">
+      <div class="list-card-info">
+        <h4>${formatDate(s.session_date)}</h4>
+        <p>
+          ${s.exercise_count || 0} exercises
+          ${s.duration_minutes ? `· ${s.duration_minutes} min` : ''}
+        </p>
+      </div>
+    </div>
+  `).join('')
+}
+
+function renderActiveProgram(program) {
+  const container = document.getElementById('active-program')
+
+  if (!program) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p>No active program. Create one!</p>
+      </div>
+    `
+    return
+  }
+
+  const goalLabels = {
+    muscle_gain: '💪 Build Muscle',
+    fat_loss: '🔥 Burn Fat',
+    strength: '🏋️ Strength',
+    endurance: '🏅 Endurance'
+  }
+
+  container.innerHTML = `
+    <div class="list-card">
+      <div class="list-card-info">
+        <h4>${program.name}</h4>
+        <p>
+          ${goalLabels[program.goal] || program.goal} · 
+          ${program.days_per_week} days/week ·
+          ${program.exercise_count || 0} exercises
+        </p>
+      </div>
+      <span class="badge badge-active">Active</span>
+    </div>
+  `
+}
+
+// Tarihi okunabilir formata çevir
+// "2026-05-15" → "May 15, 2026"
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
