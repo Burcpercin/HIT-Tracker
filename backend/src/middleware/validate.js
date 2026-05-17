@@ -196,17 +196,33 @@ const validate = {
       errors.push('Birth date is required')
     } else {
       const birth = new Date(birth_date)
+      // Geçerli tarih formatı mı?
       if (isNaN(birth.getTime())) {
         errors.push('Invalid birth date format. Use YYYY-MM-DD')
       } else {
-        // Yaş kontrolü — doğum tarihinden hesapla
         const today = new Date()
-        const age = today.getFullYear() - birth.getFullYear()
-        if (age < LIMITS.age.min || age > LIMITS.age.max) {
-          errors.push(`Age must be between ${LIMITS.age.min} and ${LIMITS.age.max}`)
-        }
+        // Gelecekte bir tarih mi?
         if (birth > today) {
           errors.push('Birth date cannot be in the future')
+        }
+        // Yaş hesapla
+        let age = today.getFullYear() - birth.getFullYear()
+        const hasHadBirthday =
+          today.getMonth() > birth.getMonth() ||
+          (today.getMonth() === birth.getMonth() &&
+            today.getDate() >= birth.getDate())
+        if (!hasHadBirthday) age--
+        // Çok genç mi?
+        if (age < 13) {
+          errors.push('You must be at least 13 years old to use this app')
+        }
+        // Çok yaşlı mı? (mantıklı üst sınır)
+        if (age > 100) {
+          errors.push('Please enter a valid birth date (age cannot exceed 100)')
+        }
+        // 1900 öncesi saçmalık kontrolü
+        if (birth.getFullYear() < 1900) {
+          errors.push('Birth year cannot be before 1900')
         }
       }
     }
