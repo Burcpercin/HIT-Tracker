@@ -653,73 +653,173 @@ function formatDate(dateStr) {
 }
 
 // ============================================
-// KISIM 8: EXERCISES
+// KISIM 8: EXERCISES (YENİ ARAYÜZ + CRUD İŞLEMLERİ)
 // ============================================
 
-// Tüm egzersizleri tut — arama için lazım
 let allExercises = []
+let currentFilter = 'all'
 
 async function loadExercises() {
   const container = document.getElementById('exercise-list')
-  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>'
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading exercises...</p></div>'
 
   try {
     allExercises = await apiRequest('/exercises')
-    renderExercises(allExercises)
+    applyFilters() // Ekrana çizerken mevcut filtreyi korur
   } catch (err) {
     container.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`
   }
 }
 
-// Egzersizleri ekrana çiz
+function filterExercises(filter, btn) {
+  currentFilter = filter
+
+  // Aktif butonu güncelle
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+
+  applyFilters()
+}
+
+// Arama — her harf girişinde çalışır
+function searchExercises() {
+  applyFilters()
+}
+
+// Hem filtre hem aramayı birlikte uygula
+function applyFilters() {
+  const query = document.getElementById('exercise-search').value.toLowerCase().trim()
+
+  let filtered = allExercises
+
+  // Kas grubu filtresi
+  if (currentFilter === 'custom') {
+    filtered = filtered.filter(ex => ex.is_custom)
+  } else if (currentFilter !== 'all') {
+    filtered = filtered.filter(ex => ex.muscle_group === currentFilter)
+  }
+
+  // Arama filtresi
+  if (query) {
+    filtered = filtered.filter(ex =>
+      ex.name.toLowerCase().includes(query) ||
+      ex.muscle_group.toLowerCase().includes(query)
+    )
+  }
+
+  renderExercises(filtered)
+}
+
 function renderExercises(exercises) {
   const container = document.getElementById('exercise-list')
 
   if (exercises.length === 0) {
     container.innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state" style="grid-column: 1/-1">
         <span class="empty-icon"><i class="fa-solid fa-dumbbell"></i></span>
-        <p>No exercises yet. Add your first one!</p>
+        <p>No exercises found.</p>
       </div>
     `
     return
   }
 
   container.innerHTML = exercises.map(ex => `
-    <div class="list-card">
-      <div class="list-card-info">
+    <div class="exercise-card ${ex.is_custom ? 'custom-exercise' : ''}"
+         onclick="openExerciseModal(${ex.id})">
+      <div class="exercise-card-image">
+        ${ex.image_url
+          ? `<img src="${ex.image_url}" alt="${ex.name}" loading="lazy">`
+          : `<i class="fa-solid fa-dumbbell" style="font-size: 2rem; color: var(--text-dim);"></i>`
+        }
+      </div>
+      <div class="exercise-card-info">
         <h4>${ex.name}</h4>
         <p>
           <span class="badge badge-gold">${ex.muscle_group}</span>
-          · Rest: ${ex.required_rest_days} days
-          ${ex.description ? `· ${ex.description.substring(0, 60)}...` : ''}
+          ${ex.is_custom ? '<span class="badge badge-green">Custom</span>' : ''}
         </p>
-      </div>
-      <div class="list-card-actions">
-        <button class="btn-icon edit" onclick="editExercise(${ex.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-        <button class="btn-icon" onclick="deleteExercise(${ex.id}, '${ex.name}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
   `).join('')
 }
 
-// Arama — her harf girişinde çalışır
-// Backend'e istek atmaz, elimizdeki veriyi filtreler
-function searchExercises() {
-  const query = document.getElementById('exercise-search').value.toLowerCase().trim()
+function openExerciseModal(id) {
+  const ex = allExercises.find(e => e.id === id)
+  if (!ex) return
 
-  if (!query) {
-    renderExercises(allExercises)
-    return
+  // Resimleri göster
+  let imagesHtml = ''
+  if (ex.image_url) {
+    imagesHtml = `
+      <div class="modal-images">
+        <img src="${ex.image_url}" alt="${ex.name} - start position">
+        ${ex.image_url_2
+          ? `<img src="${ex.image_url_2}" alt="${ex.name} - end position">`
+          : ''
+        }
+      </div>
+    `
   }
 
-  const filtered = allExercises.filter(ex =>
-    ex.name.toLowerCase().includes(query) ||
-    ex.muscle_group.toLowerCase().includes(query)
-  )
+  // Instructions
+  let instructionsHtml = ''
+  if (ex.instructions && ex.instructions.length > 0) {
+    instructionsHtml = `
+      <div class="modal-section">
+        <h4>How to perform</h4>
+        <ol class="instructions-list">
+          ${ex.instructions.map(step => `<li>${step}</li>`).join('')}
+        </ol>
+      </div>
+    `
+  }
 
-  renderExercises(filtered)
+  // Secondary muscles
+  let secondaryHtml = ''
+  if (ex.secondary_muscles && ex.secondary_muscles.length > 0) {
+    secondaryHtml = `
+      <div class="modal-section">
+        <h4>Secondary Muscles</h4>
+        <p>${ex.secondary_muscles.join(', ')}</p>
+      </div>
+    `
+  }
+
+  document.getElementById('modal-body').innerHTML = `
+    ${imagesHtml}
+    <h2 class="modal-title">${ex.name}</h2>
+    <div class="modal-badges">
+      <span class="badge badge-gold">${ex.muscle_group}</span>
+      ${ex.equipment ? `<span class="badge badge-gold">${ex.equipment}</span>` : ''}
+      ${ex.level ? `<span class="badge badge-gold">${ex.level}</span>` : ''}
+      <span class="badge badge-gold">Rest: ${ex.required_rest_days} days</span>
+      ${ex.is_custom ? '<span class="badge badge-green">Custom</span>' : ''}
+    </div>
+    ${secondaryHtml}
+    ${instructionsHtml}
+    ${ex.is_custom ? `
+      <div style="display:flex; gap:12px; margin-top:20px">
+        <button class="btn-icon edit" onclick="editExercise(${ex.id}); closeModal()" title="Edit">
+          <i class="fa-solid fa-pen"></i> Edit
+        </button>
+        <button class="btn-icon" onclick="deleteExercise(${ex.id}, '${ex.name}'); closeModal()" title="Delete">
+          <i class="fa-solid fa-trash"></i> Delete
+        </button>
+      </div>
+    ` : ''}
+  `
+
+  document.getElementById('exercise-modal').classList.remove('hidden')
 }
+
+function closeModal() {
+  document.getElementById('exercise-modal').classList.add('hidden')
+}
+
+// ESC tuşu ile modal kapat
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal()
+})
 
 async function createExercise() {
   const name = document.getElementById('ex-name').value.trim()
@@ -732,7 +832,7 @@ async function createExercise() {
     showError('exercise-form-error', 'Name must be at least 2 characters')
     return
   }
-  if (!muscle_group || muscle_group.length < 2) {
+  if (!muscle_group) {
     showError('exercise-form-error', 'Muscle group is required')
     return
   }
@@ -763,7 +863,6 @@ async function createExercise() {
 }
 
 // Düzenleme moduna geç
-// Formu doldur ve save butonunu güncelle
 function editExercise(id) {
   const ex = allExercises.find(e => e.id === id)
   if (!ex) return
@@ -776,10 +875,9 @@ function editExercise(id) {
   document.getElementById('ex-rest').value = ex.required_rest_days
 
   // Başlığı değiştir
-  document.querySelector('#exercise-form h3').textContent = 'Edit Exercise'
+  document.querySelector('#exercise-form h3').textContent = 'Edit Custom Exercise'
 
   // Save butonunu güncelleme moduna al
-  // onclick'i değiştirerek hangi id'yi güncelleyeceğini söylüyoruz
   const saveBtn = document.querySelector('#exercise-form .btn-primary')
   saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Update'
   saveBtn.setAttribute('onclick', `updateExercise(${id})`)
@@ -824,7 +922,7 @@ async function updateExercise(id) {
 }
 
 async function deleteExercise(id, name) {
-  // Silmeden önce onay al
+  // Silmeden önce onay al (alert/confirm içinde HTML ikon çalışmaz, bu yüzden düz metin kullanıyoruz)
   if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
 
   try {
@@ -841,9 +939,9 @@ function clearExerciseForm() {
   document.getElementById('ex-muscle').value = ''
   document.getElementById('ex-desc').value = ''
   document.getElementById('ex-rest').value = '5'
-  document.querySelector('#exercise-form h3').textContent = 'New Exercise'
+  document.querySelector('#exercise-form h3').textContent = 'Add Custom Exercise'
   const saveBtn = document.querySelector('#exercise-form .btn-primary')
-  saveBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Save'
+  saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save'
   saveBtn.setAttribute('onclick', 'createExercise()')
   hideError('exercise-form-error')
 }

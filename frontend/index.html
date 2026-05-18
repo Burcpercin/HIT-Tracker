@@ -221,22 +221,66 @@
     <div class="container">
       <div class="view-header">
         <h2>Exercises</h2>
-        <button class="btn-primary" onclick="toggleForm('exercise-form')"><i class="fa-solid fa-plus"></i> New Exercise</button>
+        <button class="btn-primary" onclick="toggleForm('exercise-form')"><i class="fa-solid fa-plus"></i> Add Custom</button>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterExercises('all', this)">
+          <i class="fa-solid fa-layer-group"></i> All
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Chest', this)">
+          <i class="fa-solid fa-dumbbell"></i> Chest
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Back', this)">
+          <i class="fa-solid fa-dumbbell"></i> Back
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Shoulders', this)">
+          <i class="fa-solid fa-weight-hanging"></i> Shoulders
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Biceps', this)">
+          <i class="fa-solid fa-dumbbell"></i> Biceps
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Triceps', this)">
+          <i class="fa-solid fa-dumbbell"></i> Triceps
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Quadriceps', this)">
+          <i class="fa-solid fa-person-running"></i> Quads
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Hamstrings', this)">
+          <i class="fa-solid fa-person-running"></i> Hamstrings
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Glutes', this)">
+          <i class="fa-solid fa-person-running"></i> Glutes
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Calves', this)">
+          <i class="fa-solid fa-person-running"></i> Calves
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Abs', this)">
+          <i class="fa-solid fa-bullseye"></i> Abs
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Traps', this)">
+          <i class="fa-solid fa-mountain"></i> Traps
+        </button>
+        <button class="filter-btn" onclick="filterExercises('Forearms', this)">
+          <i class="fa-solid fa-hand-fist"></i> Forearms
+        </button>
+        <button class="filter-btn custom" onclick="filterExercises('custom', this)">
+          <i class="fa-solid fa-star"></i> My Exercises
+        </button>
       </div>
 
       <div class="search-bar">
         <input type="text" id="exercise-search"
-          placeholder="Search by muscle group..."
+          placeholder="Search exercises..."
           oninput="searchExercises()">
       </div>
 
       <div id="exercise-form" class="form-card hidden">
-        <h3>New Exercise</h3>
+        <h3>Add Custom Exercise</h3>
         <div class="form-group">
           <label>Name</label>
-          <input type="text" id="ex-name" placeholder="Bench Press">
+          <input type="text" id="ex-name" placeholder="e.g. My Special Curl">
         </div>
-        
         <div class="form-group">
           <label>Muscle Group</label>
           <select id="ex-muscle">
@@ -246,21 +290,18 @@
             <option value="Shoulders">Shoulders</option>
             <option value="Biceps">Biceps</option>
             <option value="Triceps">Triceps</option>
-            <option value="Legs">Legs</option>
             <option value="Quadriceps">Quadriceps</option>
             <option value="Hamstrings">Hamstrings</option>
             <option value="Glutes">Glutes</option>
             <option value="Calves">Calves</option>
             <option value="Abs">Abs</option>
-            <option value="Forearms">Forearms</option>
             <option value="Traps">Traps</option>
-            <option value="Full Body">Full Body</option>
+            <option value="Forearms">Forearms</option>
           </select>
         </div>
-
         <div class="form-group">
           <label>Description (optional)</label>
-          <textarea id="ex-desc" placeholder="Form tips..." maxlength="1000"></textarea>
+          <textarea id="ex-desc" placeholder="How to perform..." maxlength="1000"></textarea>
         </div>
         <div class="form-group">
           <label>Required Rest Days (min 3 — Mentzer rule)</label>
@@ -268,15 +309,22 @@
         </div>
         <div id="exercise-form-error" class="error-msg hidden"></div>
         <div class="form-buttons">
-          <button class="btn-primary" onclick="createExercise()">Save</button>
+          <button class="btn-primary" onclick="createExercise()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
           <button class="btn-secondary" onclick="toggleForm('exercise-form')">Cancel</button>
         </div>
       </div>
 
-      <div id="exercise-list" class="card-list"></div>
+      <div id="exercise-list" class="exercise-grid"></div>
+
+      <div id="exercise-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeModal()"></div>
+        <div class="modal-content">
+          <button class="modal-close" onclick="closeModal()">✕</button>
+          <div id="modal-body"></div>
+        </div>
+      </div>
     </div>
   </div>
-
   <div id="sessions-view" class="view hidden">
     <div class="container">
       <div class="view-header">
