@@ -67,27 +67,31 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 
 // Hangi ekranın görüneceğini bu fonksiyon yönetiyor
 // Sayfa yenilenmeden sadece ilgili div gösteriliyor
+// ============================================
+// KISIM 3: VIEW YÖNETİMİ
+// ============================================
+
 function showView(viewName) {
-  // Tüm view'ları gizle
-  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'))
+  // Tüm view'ları gizle
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'))
 
-  // İstenen view'ı göster
-  document.getElementById(`${viewName}-view`).classList.remove('hidden')
+  // İstenen view'ı göster
+  document.getElementById(`${viewName}-view`).classList.remove('hidden')
 
-  // Navbar'daki aktif butonu güncelle
-  document.querySelectorAll('.nav-links button').forEach(b => {
-    b.classList.remove('active')
-  })
+  // Navbar'daki aktif butonu güncelle
+  document.querySelectorAll('.nav-links button').forEach(b => {
+    b.classList.remove('active')
+  })
 
-  // İlgili nav butonunu aktif yap
-  const navBtn = document.querySelector(`.nav-links button[onclick="showView('${viewName}')"]`)
-  if (navBtn) navBtn.classList.add('active')
+  // İlgili nav butonunu aktif yap
+  const navBtn = document.querySelector(`.nav-links button[onclick="showView('${viewName}')"]`)
+  if (navBtn) navBtn.classList.add('active')
 
-  // Her view açıldığında verilerini yükle
-  if (viewName === 'dashboard') loadDashboard()
-  if (viewName === 'exercises') loadExercises()
-  if (viewName === 'sessions') loadSessions()
-  if (viewName === 'programs') loadPrograms()
+  // Her view açıldığında verilerini yükle
+  if (viewName === 'dashboard') loadDashboard()
+  if (viewName === 'exercises') loadExercises()
+  if (viewName === 'training') loadTraining()
+  if (viewName === 'sessions') loadSessionHistory()
 }
 
 // Form'u açıp kapatmak için
@@ -712,7 +716,7 @@ function applyFilters() {
 
 function renderExercises(exercises) {
   const container = document.getElementById('exercise-list')
-
+  
   if (exercises.length === 0) {
     container.innerHTML = `
       <div class="empty-state" style="grid-column: 1/-1">
@@ -722,21 +726,32 @@ function renderExercises(exercises) {
     `
     return
   }
-
+  
   container.innerHTML = exercises.map(ex => `
     <div class="exercise-card ${ex.is_custom ? 'custom-exercise' : ''}"
          onclick="openExerciseModal(${ex.id})">
-      <div class="exercise-card-image">
-        ${ex.image_url
-          ? `<img src="${ex.image_url}" alt="${ex.name}" loading="lazy">`
-          : `<i class="fa-solid fa-dumbbell" style="font-size: 2rem; color: var(--text-dim);"></i>`
-        }
-      </div>
+      ${ex.image_url ? `
+        <div class="card-img-wrap">
+          <img class="img-start" src="${ex.image_url}"
+                alt="${ex.name}" loading="lazy">
+          ${ex.image_url_2
+            ? `<img class="img-end" src="${ex.image_url_2}"
+                     alt="${ex.name}" loading="lazy">`
+            : `<img class="img-end" src="${ex.image_url}"
+                     alt="${ex.name}" loading="lazy">`
+          }
+        </div>
+      ` : `
+        <div class="no-image"><i class="fa-solid fa-dumbbell"></i></div>
+      `}
       <div class="exercise-card-info">
         <h4>${ex.name}</h4>
         <p>
           <span class="badge badge-gold">${ex.muscle_group}</span>
-          ${ex.is_custom ? '<span class="badge badge-green">Custom</span>' : ''}
+          ${ex.is_custom
+            ? '<span class="badge badge-green">Custom</span>'
+            : ''
+          }
         </p>
       </div>
     </div>
@@ -747,68 +762,110 @@ function openExerciseModal(id) {
   const ex = allExercises.find(e => e.id === id)
   if (!ex) return
 
-  // Resimleri göster
-  let imagesHtml = ''
-  if (ex.image_url) {
-    imagesHtml = `
-      <div class="modal-images">
-        <img src="${ex.image_url}" alt="${ex.name} - start position">
-        ${ex.image_url_2
-          ? `<img src="${ex.image_url_2}" alt="${ex.name} - end position">`
-          : ''
-        }
+  // Mentzer'e özgü ipuçları — kas grubuna göre
+  const mentzerTips = {
+    'Chest': 'One set to failure on bench press produces more growth than 10 half-hearted sets.',
+    'Back': 'The back responds incredibly well to HIT. One all-out set of rows or pulldowns is all you need.',
+    'Shoulders': 'Overhead pressing to failure — brief, intense, infrequent. That is the Mentzer way.',
+    'Biceps': 'Curls taken to absolute failure — your biceps will have no choice but to grow.',
+    'Triceps': 'The tricep makes up 2/3 of your arm. One set to failure is your ticket to growth.',
+    'Quadriceps': 'Squats to failure are brutally hard. That is exactly why they work.',
+    'Hamstrings': 'Romanian deadlifts to failure — feel every fiber working.',
+    'Glutes': 'Hip thrusts taken to failure will build the most powerful muscles in your body.',
+    'Abs': 'The abs are like any other muscle — brief, intense work and adequate rest.',
+    'Calves': 'Calves are stubborn. Take them to absolute failure — no mercy.',
+    'Traps': 'Heavy shrugs to failure. Simple, brutal, effective.',
+    'Back': 'One intense set of deadlifts is worth more than an hour of half-effort work.'
+  }
+  
+  const tip = mentzerTips[ex.muscle_group] || 'Train with maximum intensity. One set to failure. Then rest and grow.'
+  
+  // Resim alanı
+  let heroHtml = ''
+  if (ex.image_url && ex.image_url_2) {
+    heroHtml = `
+      <div class="modal-hero">
+        <img src="${ex.image_url}" alt="Start position">
+        <img src="${ex.image_url_2}" alt="End position">
       </div>
     `
+  } else if (ex.image_url) {
+    heroHtml = `
+      <div class="modal-hero-single">
+        <img src="${ex.image_url}" alt="${ex.name}">
+      </div>
+    `
+  } else {
+    heroHtml = `<div class="modal-hero-placeholder"><i class="fa-solid fa-dumbbell"></i></div>`
   }
-
+  
+  // Secondary muscles
+  const secondaryHtml = ex.secondary_muscles?.length > 0
+    ? ex.secondary_muscles.map(m =>
+        `<span class="muscle-secondary">${m}</span>`
+      ).join('')
+    : ''
+    
   // Instructions
-  let instructionsHtml = ''
-  if (ex.instructions && ex.instructions.length > 0) {
-    instructionsHtml = `
-      <div class="modal-section">
+  const instructionsHtml = ex.instructions?.length > 0
+    ? `<div class="modal-section">
         <h4>How to perform</h4>
         <ol class="instructions-list">
           ${ex.instructions.map(step => `<li>${step}</li>`).join('')}
         </ol>
-      </div>
-    `
-  }
-
-  // Secondary muscles
-  let secondaryHtml = ''
-  if (ex.secondary_muscles && ex.secondary_muscles.length > 0) {
-    secondaryHtml = `
-      <div class="modal-section">
-        <h4>Secondary Muscles</h4>
-        <p>${ex.secondary_muscles.join(', ')}</p>
-      </div>
-    `
-  }
-
+      </div>`
+    : ''
+    
   document.getElementById('modal-body').innerHTML = `
-    ${imagesHtml}
-    <h2 class="modal-title">${ex.name}</h2>
-    <div class="modal-badges">
-      <span class="badge badge-gold">${ex.muscle_group}</span>
-      ${ex.equipment ? `<span class="badge badge-gold">${ex.equipment}</span>` : ''}
-      ${ex.level ? `<span class="badge badge-gold">${ex.level}</span>` : ''}
-      <span class="badge badge-gold">Rest: ${ex.required_rest_days} days</span>
-      ${ex.is_custom ? '<span class="badge badge-green">Custom</span>' : ''}
-    </div>
-    ${secondaryHtml}
-    ${instructionsHtml}
-    ${ex.is_custom ? `
-      <div style="display:flex; gap:12px; margin-top:20px">
-        <button class="btn-icon edit" onclick="editExercise(${ex.id}); closeModal()" title="Edit">
-          <i class="fa-solid fa-pen"></i> Edit
-        </button>
-        <button class="btn-icon" onclick="deleteExercise(${ex.id}, '${ex.name}'); closeModal()" title="Delete">
-          <i class="fa-solid fa-trash"></i> Delete
-        </button>
+    ${heroHtml}
+    <div class="modal-body-content">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px">
+        <h2 class="modal-title">${ex.name}</h2>
+        <button class="modal-close" onclick="closeModal()"
+           style="position:static; margin-left:12px"><i class="fa-solid fa-xmark"></i></button>
       </div>
-    ` : ''}
+      
+      <div class="modal-muscle-bar">
+        <span class="muscle-primary"><i class="fa-solid fa-bullseye"></i> ${ex.muscle_group}</span>
+        ${secondaryHtml}
+      </div>
+      
+      <div class="modal-stats">
+        <div class="modal-stat">
+          <label>Equipment</label>
+          <span>${ex.equipment || 'Bodyweight'}</span>
+        </div>
+        <div class="modal-stat">
+          <label>Level</label>
+          <span>${ex.level || 'All levels'}</span>
+        </div>
+        <div class="modal-stat">
+          <label>Rest Days</label>
+          <span>${ex.required_rest_days} days</span>
+        </div>
+      </div>
+      
+      <div class="mentzer-tip">
+        <i class="fa-solid fa-bolt"></i> <strong>Mentzer says:</strong> "${tip}"
+      </div>
+      
+      ${instructionsHtml}
+      
+      ${ex.is_custom ? `
+        <div style="display:flex; gap:12px; margin-top:20px;
+           padding-top:20px; border-top: 1px solid var(--border)">
+          <button class="btn-secondary"
+             onclick="editExercise(${ex.id}); closeModal()">
+            <i class="fa-solid fa-pen"></i> Edit
+          </button>
+          <button class="btn-danger"
+             onclick="deleteExercise(${ex.id}, '${ex.name}'); closeModal()">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+        </div>
+      ` : ''}
+    </div>
   `
-
   document.getElementById('exercise-modal').classList.remove('hidden')
 }
 
@@ -946,311 +1003,87 @@ function clearExerciseForm() {
   hideError('exercise-form-error')
 }
 // ============================================
-// KISIM 9: WORKOUT SESSIONS
-// ============================================
-
-let allSessions = []
-
-async function loadSessions() {
-  const container = document.getElementById('session-list')
-  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>'
-
-  try {
-    allSessions = await apiRequest('/sessions')
-    renderSessions(allSessions)
-  } catch (err) {
-    container.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`
-  }
-}
-
-function renderSessions(sessions) {
-  const container = document.getElementById('session-list')
-
-  if (sessions.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-icon"><i class="fa-solid fa-dumbbell"></i></span>
-        <p>No sessions yet. Log your first workout!</p>
-      </div>
-    `
-    return
-  }
-
-  container.innerHTML = sessions.map(s => `
-    <div class="list-card">
-      <div class="list-card-info">
-        <h4>${formatDate(s.session_date)}</h4>
-        <p>
-          ${s.exercise_count || 0} exercises
-          ${s.duration_minutes ? `· ${s.duration_minutes} min` : ''}
-          ${s.notes ? `· ${s.notes.substring(0, 50)}` : ''}
-        </p>
-      </div>
-      <div class="list-card-actions">
-        <button 
-          class="btn-secondary" 
-          style="font-size:0.8rem; padding: 6px 12px"
-          onclick="openSessionDetail(${s.id})">
-          Details
-        </button>
-        <button class="btn-icon" onclick="deleteSession(${s.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    </div>
-
-    <div id="session-detail-${s.id}" class="hidden">
-      <div class="form-card" style="margin-top: -12px; border-top: none; border-radius: 0 0 12px 12px">
-
-        <h4 style="margin-bottom: 16px; color: var(--accent)">Add Exercise to Session</h4>
-        <div class="form-group">
-          <label>Exercise</label>
-          <select id="ses-ex-select-${s.id}">
-            <option value="">Select exercise...</option>
-          </select>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
-          <div class="form-group">
-            <label>Weight (kg)</label>
-            <input type="number" id="ses-weight-${s.id}" placeholder="100" step="0.5" min="0.5">
-          </div>
-          <div class="form-group">
-            <label>Reps</label>
-            <input type="number" id="ses-reps-${s.id}" placeholder="8" min="1" max="100">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Reached Failure?</label>
-          <div class="choice-buttons">
-            <button class="choice-btn" onclick="selectChoice('failure_${s.id}','true',this)">
-              <i class="fa-solid fa-check"></i> Yes — Mentzer approved!
-            </button>
-            <button class="choice-btn" onclick="selectChoice('failure_${s.id}','false',this)">
-              <i class="fa-solid fa-xmark"></i> No
-            </button>
-          </div>
-        </div>
-        <div id="ses-ex-error-${s.id}" class="error-msg hidden"></div>
-        <button class="btn-primary" onclick="addExerciseToSession(${s.id})">
-          <i class="fa-solid fa-plus"></i> Add Exercise
-        </button>
-
-        <div id="ses-exercises-${s.id}" style="margin-top: 20px"></div>
-
-        <div id="recovery-status-${s.id}" style="margin-top: 12px"></div>
-      </div>
-    </div>
-  `).join('')
-
-  // Her session için egzersiz dropdown'ını doldur
-  sessions.forEach(s => {
-    fillExerciseDropdown(`ses-ex-select-${s.id}`)
-  })
-}
-
-// Egzersiz dropdown'ını doldur
-// allExercises zaten bellekte — API isteği yapmadan kullan
-function fillExerciseDropdown(selectId) {
-  const select = document.getElementById(selectId)
-  if (!select) return
-
-  select.innerHTML = '<option value="">Select exercise...</option>'
-
-  allExercises.forEach(ex => {
-    const option = document.createElement('option')
-    option.value = ex.id
-    option.textContent = `${ex.name} (${ex.muscle_group})`
-    select.appendChild(option)
-  })
-}
-
-// Session detay panelini aç/kapat
-async function openSessionDetail(sessionId) {
-  const panel = document.getElementById(`session-detail-${sessionId}`)
-  const isHidden = panel.classList.contains('hidden')
-
-  // Tüm panelleri kapat
-  document.querySelectorAll('[id^="session-detail-"]').forEach(p => {
-    p.classList.add('hidden')
-  })
-
-  if (isHidden) {
-    panel.classList.remove('hidden')
-    // Seansın detaylarını yükle (egzersizleri göster)
-    await loadSessionExercises(sessionId)
-  }
-}
-
-// Seanstaki egzersizleri yükle
-async function loadSessionExercises(sessionId) {
-  try {
-    const session = await apiRequest(`/sessions/${sessionId}`)
-    const container = document.getElementById(`ses-exercises-${sessionId}`)
-
-    if (!session.exercises || session.exercises.length === 0) {
-      container.innerHTML = `
-        <p style="color: var(--text-dim); font-size: 0.9rem">
-          No exercises logged yet.
-        </p>
-      `
-      return
-    }
-
-    container.innerHTML = `
-      <h4 style="margin-bottom: 12px; color: var(--text-secondary)">
-        Logged Exercises
-      </h4>
-      ${session.exercises.map(ex => `
-        <div class="list-card" style="margin-bottom: 8px">
-          <div class="list-card-info">
-            <h4>${ex.exercise_name}</h4>
-            <p>
-              ${ex.weight_kg}kg · ${ex.reps} reps ·
-              <span class="${ex.reached_failure ? 'badge badge-green' : ''}">
-                ${ex.reached_failure ? '<i class="fa-solid fa-check"></i> Failure reached' : '<i class="fa-solid fa-xmark"></i> No failure'}
-              </span>
-            </p>
-          </div>
-        </div>
-      `).join('')}
-    `
-  } catch (err) {
-    console.error('Error loading session exercises:', err)
-  }
-}
-
-async function createSession() {
-  const session_date = document.getElementById('ses-date').value
-  const duration_minutes = document.getElementById('ses-duration').value
-  const notes = document.getElementById('ses-notes').value.trim()
-
-  // Frontend validasyon
-  if (!session_date) {
-    showError('session-form-error', 'Please select a date')
-    return
-  }
-
-  if (duration_minutes && (duration_minutes < 1 || duration_minutes > 300)) {
-    showError('session-form-error', 'Duration must be between 1-300 minutes')
-    return
-  }
-
-  if (notes && notes.length > 500) {
-    showError('session-form-error', 'Notes cannot exceed 500 characters')
-    return
-  }
-
-  try {
-    await apiRequest('/sessions', 'POST', {
-      session_date,
-      duration_minutes: duration_minutes ? parseInt(duration_minutes) : null,
-      notes: notes || null
-    })
-
-    // Formu temizle ve kapat
-    document.getElementById('ses-date').value = ''
-    document.getElementById('ses-duration').value = ''
-    document.getElementById('ses-notes').value = ''
-    toggleForm('session-form')
-
-    await loadSessions()
-
-  } catch (err) {
-    showError('session-form-error', err.message)
-  }
-}
-
-async function addExerciseToSession(sessionId) {
-  const exerciseId = document.getElementById(`ses-ex-select-${sessionId}`).value
-  const weight = document.getElementById(`ses-weight-${sessionId}`).value
-  const reps = document.getElementById(`ses-reps-${sessionId}`).value
-
-  // Failure seçimi — selectChoice ile kaydedilen değer
-  // aiData objesini değil, özel bir key kullanıyoruz
-  const failureKey = `failure_${sessionId}`
-  const reachedFailure = onboardingData[failureKey] === 'true' ||
-    aiData[failureKey] === 'true'
-
-  // Frontend validasyon
-  if (!exerciseId) {
-    showError(`ses-ex-error-${sessionId}`, 'Please select an exercise')
-    return
-  }
-  if (!weight || weight <= 0) {
-    showError(`ses-ex-error-${sessionId}`, 'Please enter a valid weight')
-    return
-  }
-  if (!reps || reps < 1) {
-    showError(`ses-ex-error-${sessionId}`, 'Please enter valid reps')
-    return
-  }
-
-  try {
-    const result = await apiRequest(`/sessions/${sessionId}/exercises`, 'POST', {
-      exercise_id: parseInt(exerciseId),
-      weight_kg: parseFloat(weight),
-      reps: parseInt(reps),
-      reached_failure: reachedFailure
-    })
-
-    // Mentzer uyarısı varsa göster
-    if (result.progressWarning) {
-      const recoveryDiv = document.getElementById(`recovery-status-${sessionId}`)
-      recoveryDiv.innerHTML = `
-        <div class="error-msg" style="background: rgba(232,197,71,0.1); 
-          border-color: rgba(232,197,71,0.3); color: var(--accent)">
-          <i class="fa-solid fa-bolt"></i> ${result.progressWarning}
-        </div>
-      `
-    }
-
-    // Egzersiz listesini yenile
-    await loadSessionExercises(sessionId)
-
-    // Inputları temizle
-    document.getElementById(`ses-ex-select-${sessionId}`).value = ''
-    document.getElementById(`ses-weight-${sessionId}`).value = ''
-    document.getElementById(`ses-reps-${sessionId}`).value = ''
-
-  } catch (err) {
-    showError(`ses-ex-error-${sessionId}`, err.message)
-  }
-}
-
-async function deleteSession(id) {
-  if (!confirm('Delete this session? This cannot be undone.')) return
-
-  try {
-    await apiRequest(`/sessions/${id}`, 'DELETE')
-    await loadSessions()
-  } catch (err) {
-    alert(`Error: ${err.message}`)
-  }
-}
-
-// ============================================
-// KISIM 10: WORKOUT PROGRAMS
+// TRAINING — Programs + Workout + Calendar
 // ============================================
 
 let allPrograms = []
+let allSessions = []
+let activeSessionId = null
+let currentWorkoutExercises = []
+let failureState = {}
+let manualFailure = false
+let calendarDate = new Date()
+
+async function loadTraining() {
+  await loadPrograms()
+}
+
+async function loadSessionHistory() {
+  const container = document.getElementById('session-list')
+  if (!container) return
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  try {
+    const sessions = await apiRequest('/sessions')
+    if (!sessions.length) {
+      container.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No sessions yet.</p></div>'
+      return
+    }
+    container.innerHTML = sessions.map(s => `
+      <div class="list-card" style="margin-bottom:8px">
+        <div class="list-card-info">
+          <h4>${formatDate(s.session_date)}</h4>
+          <p>${s.exercise_count || 0} exercises${s.duration_minutes ? ` · ${s.duration_minutes} min` : ''}</p>
+        </div>
+      </div>
+    `).join('')
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`
+  }
+}
+
+
+function switchTrainingTab(tab) {
+  document.querySelectorAll('.training-tab-content').forEach(t => {
+    t.classList.add('hidden')
+  })
+  document.querySelectorAll('.training-tab').forEach(t => {
+    t.classList.remove('active')
+  })
+
+  document.getElementById(`tab-${tab}`).classList.remove('hidden')
+  event.target.closest('.training-tab').classList.add('active')
+
+  if (tab === 'programs') loadPrograms()
+  if (tab === 'workout') loadWorkoutTab()
+  if (tab === 'calendar') loadCalendar()
+}
+
+// ============================================
+// PROGRAMS
+// ============================================
 
 async function loadPrograms() {
   const container = document.getElementById('program-list')
-  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading...</p></div>'
+  if (!container) return
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
 
   try {
     allPrograms = await apiRequest('/programs')
     renderPrograms(allPrograms)
   } catch (err) {
-    container.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`
+    container.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`
   }
 }
 
 function renderPrograms(programs) {
   const container = document.getElementById('program-list')
+  if (!container) return
 
   if (programs.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <span class="empty-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span class="empty-icon">📋</span>
         <p>No programs yet. Create your first HIT program!</p>
       </div>
     `
@@ -1258,179 +1091,145 @@ function renderPrograms(programs) {
   }
 
   const goalLabels = {
-    muscle_gain: '<i class="fa-solid fa-dumbbell"></i> Build Muscle',
-    fat_loss: '<i class="fa-solid fa-fire"></i> Burn Fat',
-    strength: '<i class="fa-solid fa-weight-hanging"></i> Strength',
-    endurance: '<i class="fa-solid fa-heart-pulse"></i> Endurance'
+    muscle_gain: '💪 Muscle', fat_loss: '🔥 Fat Loss',
+    strength: '🏋️ Strength', endurance: '🏅 Endurance'
   }
 
   container.innerHTML = programs.map(p => `
-    <div class="list-card ${p.is_active ? 'active-program' : ''}">
-      <div class="list-card-info">
-        <h4>
-          ${p.name}
-          ${p.is_active ? '<span class="badge badge-active">Active</span>' : ''}
-        </h4>
-        <p>
-          ${goalLabels[p.goal] || p.goal || 'No goal set'} · 
-          ${p.days_per_week} days/week · 
-          ${p.exercise_count || 0} exercises
-        </p>
-        ${p.description
-          ? `<p style="color: var(--text-dim); font-size: 0.82rem; margin-top: 4px">
-              ${p.description.substring(0, 80)}
-             </p>`
-          : ''}
+    <div class="program-card ${p.is_active ? 'is-active' : ''}">
+      <div class="program-card-header">
+        <div>
+          <h3 style="margin-bottom:4px">
+            ${p.name}
+            ${p.is_active
+              ? '<span class="badge badge-active" style="margin-left:8px">Active</span>'
+              : ''}
+          </h3>
+          <p style="color:var(--text-dim); font-size:0.85rem">
+            ${goalLabels[p.goal] || ''} · 
+            ${p.days_per_week} days/week · 
+            ${p.exercise_count || 0} exercises
+          </p>
+        </div>
+        <div style="display:flex; gap:8px">
+          ${!p.is_active
+            ? `<button class="btn-secondary"
+                onclick="activateProgram(${p.id})"
+                style="font-size:0.82rem; padding:6px 12px">
+                Set Active
+              </button>`
+            : ''}
+          <button class="btn-icon edit"
+            onclick="toggleProgramDetail(${p.id})"
+            title="Edit">📝</button>
+          <button class="btn-icon"
+            onclick="deleteProgram(${p.id}, '${p.name}')"
+            title="Delete">🗑️</button>
+        </div>
       </div>
-      <div class="list-card-actions">
-        ${!p.is_active
-          ? `<button class="btn-icon edit" onclick="activateProgram(${p.id})" title="Set Active"><i class="fa-solid fa-star"></i></button>`
-          : ''}
-        <button class="btn-icon edit" onclick="openProgramDetail(${p.id})" title="Manage"><i class="fa-solid fa-pen"></i></button>
-        <button class="btn-icon" onclick="deleteProgram(${p.id}, '${p.name}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    </div>
 
-   <div id="program-detail-${p.id}" class="hidden">
-      <div class="form-card" style="margin-top: -12px; border-top: none; border-radius: 0 0 12px 12px">
-
-        <h4 style="color: var(--accent); margin-bottom: 16px">
-          Add Exercise to Program
-        </h4>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
-          <div class="form-group">
-            <label>Exercise</label>
-            <select id="prog-ex-select-${p.id}">
-              <option value="">Select exercise...</option>
-            </select>
+      <div id="prog-detail-${p.id}" class="hidden">
+        <div class="program-card-body">
+          <h4 style="margin-bottom:12px; color:var(--accent)">Add Exercise</h4>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+            <div class="form-group">
+              <label>Exercise</label>
+              <select id="padd-ex-${p.id}"></select>
+            </div>
+            <div class="form-group">
+              <label>Day</label>
+              <select id="padd-day-${p.id}">
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+                <option value="7">Sunday</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Day of Week</label>
-            <select id="prog-day-${p.id}">
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-              <option value="6">Saturday</option>
-              <option value="7">Sunday</option>
-            </select>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+            <div class="form-group">
+              <label>Sets</label>
+              <input type="number" id="padd-sets-${p.id}" value="1" min="1" max="10">
+            </div>
+            <div class="form-group">
+              <label>Target Reps</label>
+              <input type="number" id="padd-reps-${p.id}" placeholder="8" min="1">
+            </div>
           </div>
+          <div id="padd-error-${p.id}" class="error-msg hidden"></div>
+          <button class="btn-primary" onclick="addExerciseToProgram(${p.id})">
+            Add Exercise
+          </button>
+          <div id="padd-list-${p.id}" style="margin-top:20px"></div>
         </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
-          <div class="form-group">
-            <label>Sets</label>
-            <input type="number" id="prog-sets-${p.id}" 
-              value="1" min="1" max="20"
-              placeholder="1">
-          </div>
-          <div class="form-group">
-            <label>Target Reps</label>
-            <input type="number" id="prog-reps-${p.id}" 
-              placeholder="8" min="1" max="100">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Notes (optional)</label>
-          <input type="text" id="prog-ex-notes-${p.id}" 
-            placeholder="e.g. Go to failure" maxlength="300">
-        </div>
-
-        <div id="prog-ex-error-${p.id}" class="error-msg hidden"></div>
-
-        <button class="btn-primary" onclick="addExerciseToProgram(${p.id})">
-          <i class="fa-solid fa-plus"></i> Add to Program
-        </button>
-
-        <div id="prog-exercises-${p.id}" style="margin-top: 20px"></div>
       </div>
     </div>
   `).join('')
-
-  // Her program için dropdown doldur
-  programs.forEach(p => {
-    fillExerciseDropdown(`prog-ex-select-${p.id}`)
-  })
 }
 
-async function openProgramDetail(programId) {
-  const panel = document.getElementById(`program-detail-${programId}`)
-  const isHidden = panel.classList.contains('hidden')
+async function toggleProgramDetail(programId) {
+  const detail = document.getElementById(`prog-detail-${programId}`)
+  const isHidden = detail.classList.contains('hidden')
 
-  // Tüm panelleri kapat
-  document.querySelectorAll('[id^="program-detail-"]').forEach(p => {
-    p.classList.add('hidden')
+  document.querySelectorAll('[id^="prog-detail-"]').forEach(d => {
+    d.classList.add('hidden')
   })
 
   if (isHidden) {
-    panel.classList.remove('hidden')
-    await loadProgramExercises(programId)
+    detail.classList.remove('hidden')
+    fillExerciseDropdown(`padd-ex-${programId}`)
+    await loadProgramExerciseList(programId)
   }
 }
 
-async function loadProgramExercises(programId) {
+async function loadProgramExerciseList(programId) {
+  const container = document.getElementById(`padd-list-${programId}`)
   try {
     const program = await apiRequest(`/programs/${programId}`)
-    const container = document.getElementById(`prog-exercises-${programId}`)
 
-    if (!program.exercises || program.exercises.length === 0) {
+    if (!program.exercises?.length) {
       container.innerHTML = `
-        <p style="color: var(--text-dim); font-size: 0.9rem">
+        <p style="color:var(--text-dim); font-size:0.9rem">
           No exercises yet. Add some above!
         </p>
       `
       return
     }
 
-    // Egzersizleri güne göre grupla
-    // { 1: [bench press, ...], 3: [squat, ...] }
+    const dayNames = {
+      1:'Monday', 2:'Tuesday', 3:'Wednesday',
+      4:'Thursday', 5:'Friday', 6:'Saturday', 7:'Sunday'
+    }
+
     const byDay = {}
     program.exercises.forEach(ex => {
       if (!byDay[ex.day_of_week]) byDay[ex.day_of_week] = []
       byDay[ex.day_of_week].push(ex)
     })
 
-    const dayNames = {
-      1: 'Monday', 2: 'Tuesday', 3: 'Wednesday',
-      4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'
-    }
-
-    // Her günü ayrı başlıkla göster
-    container.innerHTML = `
-      <h4 style="margin-bottom: 12px; color: var(--text-secondary)">
-        Program Schedule
-      </h4>
-      ${Object.keys(byDay).sort().map(day => `
-        <div style="margin-bottom: 16px">
-          <p style="color: var(--accent); font-weight: 600; 
-            font-size: 0.85rem; margin-bottom: 8px; 
-            text-transform: uppercase; letter-spacing: 1px">
-            ${dayNames[day]}
-          </p>
-          ${byDay[day].map(ex => `
-            <div class="list-card" style="margin-bottom: 6px">
-              <div class="list-card-info">
-                <h4>${ex.exercise_name}</h4>
-                <p>
-                  <span class="badge badge-gold">${ex.muscle_group}</span>
-                  · ${ex.sets} set · ${ex.target_reps} reps
-                  ${ex.notes ? `· ${ex.notes}` : ''}
-                </p>
-              </div>
-              <button class="btn-icon" 
-                onclick="removeExerciseFromProgram(${programId}, ${ex.id})" 
-                title="Remove"><i class="fa-solid fa-trash"></i>
-              </button>
+    container.innerHTML = Object.keys(byDay).sort().map(day => `
+      <div class="day-column">
+        <h4>${dayNames[day]}</h4>
+        ${byDay[day].map(ex => `
+          <div class="day-exercise-item">
+            <div>
+              <strong>${ex.exercise_name}</strong>
+              <span style="color:var(--text-dim); font-size:0.82rem; margin-left:8px">
+                ${ex.sets} set · ${ex.target_reps} reps
+              </span>
             </div>
-          `).join('')}
-        </div>
-      `).join('')}
-    `
+            <button class="btn-icon"
+              onclick="removeExerciseFromProgram(${programId}, ${ex.id})"
+              title="Remove">🗑️</button>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')
   } catch (err) {
-    console.error('Error loading program exercises:', err)
+    container.innerHTML = `<p style="color:var(--danger)">${err.message}</p>`
   }
 }
 
@@ -1440,39 +1239,26 @@ async function createProgram() {
   const days_per_week = parseInt(document.getElementById('prog-days').value)
   const description = document.getElementById('prog-desc').value.trim()
 
-  // Frontend validasyon
   if (!name || name.length < 3) {
-    showError('program-form-error', 'Program name must be at least 3 characters')
+    showError('program-form-error', 'Name must be at least 3 characters')
     return
   }
   if (!days_per_week || days_per_week < 1 || days_per_week > 7) {
-    showError('program-form-error', 'Days per week must be between 1-7')
-    return
-  }
-  if (description && description.length > 1000) {
-    showError('program-form-error', 'Description cannot exceed 1000 characters')
+    showError('program-form-error', 'Days per week must be 1-7')
     return
   }
 
   try {
-    const result = await apiRequest('/programs', 'POST', {
+    await apiRequest('/programs', 'POST', {
       name, goal, days_per_week,
       description: description || null
     })
 
-    // Mentzer uyarısı — 3'ten fazla gün seçildiyse
-    if (result.warning) {
-      alert(`⚡ Mentzer says: ${result.warning}`)
-    }
-
-    // Formu temizle
     document.getElementById('prog-name').value = ''
     document.getElementById('prog-days').value = '3'
     document.getElementById('prog-desc').value = ''
     toggleForm('program-form')
-
     await loadPrograms()
-
   } catch (err) {
     showError('program-form-error', err.message)
   }
@@ -1488,77 +1274,483 @@ async function activateProgram(id) {
 }
 
 async function addExerciseToProgram(programId) {
-  const exerciseId = document.getElementById(`prog-ex-select-${programId}`).value
-  const day_of_week = parseInt(document.getElementById(`prog-day-${programId}`).value)
-  const sets = parseInt(document.getElementById(`prog-sets-${programId}`).value)
-  const target_reps = parseInt(document.getElementById(`prog-reps-${programId}`).value)
-  const notes = document.getElementById(`prog-ex-notes-${programId}`).value.trim()
+  const exerciseId = document.getElementById(`padd-ex-${programId}`).value
+  const day_of_week = parseInt(document.getElementById(`padd-day-${programId}`).value)
+  const sets = parseInt(document.getElementById(`padd-sets-${programId}`).value)
+  const target_reps = parseInt(document.getElementById(`padd-reps-${programId}`).value)
 
-  // Frontend validasyon
   if (!exerciseId) {
-    showError(`prog-ex-error-${programId}`, 'Please select an exercise')
+    showError(`padd-error-${programId}`, 'Please select an exercise')
     return
   }
   if (!target_reps || target_reps < 1) {
-    showError(`prog-ex-error-${programId}`, 'Please enter target reps')
-    return
-  }
-  if (!sets || sets < 1 || sets > 20) {
-    showError(`prog-ex-error-${programId}`, 'Sets must be between 1-20')
+    showError(`padd-error-${programId}`, 'Please enter target reps')
     return
   }
 
   try {
-    const result = await apiRequest(`/programs/${programId}/exercises`, 'POST', {
+    await apiRequest(`/programs/${programId}/exercises`, 'POST', {
       exercise_id: parseInt(exerciseId),
-      day_of_week,
-      sets,
-      target_reps,
-      notes: notes || null
+      day_of_week, sets, target_reps
     })
 
-    // Mentzer uyarısı
-    if (result.warning) {
-      const errorDiv = document.getElementById(`prog-ex-error-${programId}`)
-      errorDiv.style.background = 'rgba(232,197,71,0.1)'
-      errorDiv.style.borderColor = 'rgba(232,197,71,0.3)'
-      errorDiv.style.color = 'var(--accent)'
-      errorDiv.innerHTML = `<i class="fa-solid fa-bolt"></i> ${result.warning}`
-      errorDiv.classList.remove('hidden')
-    }
-
-    // Formu temizle
-    document.getElementById(`prog-ex-select-${programId}`).value = ''
-    document.getElementById(`prog-reps-${programId}`).value = ''
-    document.getElementById(`prog-ex-notes-${programId}`).value = ''
-
-    await loadProgramExercises(programId)
-
+    document.getElementById(`padd-reps-${programId}`).value = ''
+    hideError(`padd-error-${programId}`)
+    await loadProgramExerciseList(programId)
   } catch (err) {
-    showError(`prog-ex-error-${programId}`, err.message)
+    showError(`padd-error-${programId}`, err.message)
   }
 }
 
-async function removeExerciseFromProgram(programId, exerciseEntryId) {
-  if (!confirm('Remove this exercise from the program?')) return
-
+async function removeExerciseFromProgram(programId, entryId) {
+  if (!confirm('Remove this exercise?')) return
   try {
-    await apiRequest(`/programs/${programId}/exercises/${exerciseEntryId}`, 'DELETE')
-    await loadProgramExercises(programId)
+    await apiRequest(`/programs/${programId}/exercises/${entryId}`, 'DELETE')
+    await loadProgramExerciseList(programId)
   } catch (err) {
     alert(`Error: ${err.message}`)
   }
 }
 
 async function deleteProgram(id, name) {
-  if (!confirm(`Delete program "${name}"? This cannot be undone.`)) return
-
+  if (!confirm(`Delete "${name}"?`)) return
   try {
     await apiRequest(`/programs/${id}`, 'DELETE')
     await loadPrograms()
   } catch (err) {
     alert(`Error: ${err.message}`)
   }
+}
+
+// ============================================
+// WORKOUT
+// ============================================
+
+async function loadWorkoutTab() {
+  const container = document.getElementById('workout-program-cards')
+
+  if (activeSessionId) {
+    document.getElementById('workout-select-program').classList.add('hidden')
+    document.getElementById('active-workout').classList.remove('hidden')
+    return
+  }
+
+  document.getElementById('workout-select-program').classList.remove('hidden')
+  document.getElementById('active-workout').classList.add('hidden')
+
+  try {
+    const programs = await apiRequest('/programs')
+
+    if (programs.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">📋</span>
+          <p>No programs yet.</p>
+          <button class="btn-primary" style="margin-top:16px"
+            onclick="switchTrainingTab('programs')">
+            Create Program
+          </button>
+        </div>
+      `
+      return
+    }
+
+    const goalLabels = {
+      muscle_gain: '💪 Muscle', fat_loss: '🔥 Fat Loss',
+      strength: '🏋️ Strength', endurance: '🏅 Endurance'
+    }
+
+    container.innerHTML = programs.map(p => `
+      <div class="workout-program-card ${p.is_active ? 'active-prog' : ''}"
+        onclick="startWorkout(${p.id})">
+        <div>
+          <h3 style="margin-bottom:4px">
+            ${p.name}
+            ${p.is_active
+              ? '<span class="badge badge-active" style="margin-left:8px">Active</span>'
+              : ''}
+          </h3>
+          <p style="color:var(--text-dim); font-size:0.85rem">
+            ${goalLabels[p.goal] || ''} · 
+            ${p.days_per_week} days/week · 
+            ${p.exercise_count || 0} exercises
+          </p>
+        </div>
+        <span style="font-size:1.5rem; color:var(--accent)">▶</span>
+      </div>
+    `).join('')
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`
+  }
+}
+
+async function startWorkout(programId) {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const session = await apiRequest('/sessions', 'POST', {
+      session_date: today
+    })
+    activeSessionId = session.id
+
+    const program = await apiRequest(`/programs/${programId}`)
+
+    document.getElementById('workout-select-program').classList.add('hidden')
+    document.getElementById('active-workout').classList.remove('hidden')
+    document.getElementById('workout-title').textContent = `💪 ${program.name}`
+    document.getElementById('workout-subtitle').textContent =
+      new Date().toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric'
+      })
+
+    currentWorkoutExercises = program.exercises || []
+    failureState = {}
+    renderWorkoutExercises(currentWorkoutExercises)
+    fillExerciseDropdown('manual-ex-select')
+
+  } catch (err) {
+    alert(`Error: ${err.message}`)
+  }
+}
+
+function renderWorkoutExercises(exercises) {
+  const container = document.getElementById('workout-exercises')
+
+  if (!exercises?.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>No exercises in this program yet!</p>
+        <button class="btn-secondary" style="margin-top:12px"
+          onclick="switchTrainingTab('programs')">
+          Add Exercises
+        </button>
+      </div>
+    `
+    return
+  }
+
+  container.innerHTML = exercises.map((ex, i) => `
+    <div class="workout-ex-item">
+      <h4>${ex.exercise_name}</h4>
+      <p class="workout-ex-meta">
+        <span class="badge badge-gold">${ex.muscle_group}</span>
+        · ${ex.sets} set · ${ex.target_reps} target reps
+      </p>
+      <div class="workout-ex-inputs">
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <input type="number" id="w-kg-${i}"
+            placeholder="0" step="0.5" min="0"
+            oninput="checkProgressiveOverload(${i})">
+        </div>
+        <div class="form-group">
+          <label>Reps</label>
+          <input type="number" id="w-rep-${i}"
+            placeholder="${ex.target_reps}" min="1">
+        </div>
+        <div class="form-group">
+          <label>Failure?</label>
+          <div class="failure-toggle">
+            <button class="failure-btn" id="fy-${i}"
+              onclick="setFailure(${i}, true)">✅</button>
+            <button class="failure-btn" id="fn-${i}"
+              onclick="setFailure(${i}, false)">❌</button>
+          </div>
+        </div>
+      </div>
+      <div id="overload-${i}" class="hidden overload-msg"></div>
+    </div>
+  `).join('')
+
+  exercises.forEach((ex, i) => fetchPrevPerformance(i, ex.exercise_id))
+}
+
+async function fetchPrevPerformance(index, exerciseId) {
+  try {
+    const sessions = await apiRequest('/sessions')
+    for (const s of sessions) {
+      if (s.id === activeSessionId) continue
+      const detail = await apiRequest(`/sessions/${s.id}`)
+      const prev = detail.exercises?.find(e => e.exercise_id === exerciseId)
+      if (prev) {
+        const input = document.getElementById(`w-kg-${index}`)
+        if (input && !input.value) {
+          input.value = prev.weight_kg
+          input.setAttribute('data-prev', prev.weight_kg)
+        }
+        return
+      }
+    }
+  } catch {}
+}
+
+function setFailure(index, value) {
+  failureState[index] = value
+  document.getElementById(`fy-${index}`)
+    .classList.toggle('yes-active', value)
+  document.getElementById(`fn-${index}`)
+    .classList.toggle('no-active', !value)
+}
+
+function checkProgressiveOverload(index) {
+  const input = document.getElementById(`w-kg-${index}`)
+  const prev = parseFloat(input.getAttribute('data-prev'))
+  const curr = parseFloat(input.value)
+  const msg = document.getElementById(`overload-${index}`)
+
+  if (isNaN(prev) || isNaN(curr)) return
+
+  if (curr > prev) {
+    msg.className = 'overload-msg overload-up'
+    msg.textContent = `⚡ +${(curr-prev).toFixed(1)}kg — Progressive overload!`
+    msg.classList.remove('hidden')
+  } else if (curr < prev) {
+    msg.className = 'overload-msg overload-down'
+    msg.textContent = `⚠️ Decreased from ${prev}kg — Push harder!`
+    msg.classList.remove('hidden')
+  } else {
+    msg.classList.add('hidden')
+  }
+}
+
+function setManualFailure(value, btn) {
+  manualFailure = value
+  document.querySelectorAll('#manual-ex-form .failure-btn')
+    .forEach(b => b.classList.remove('yes-active', 'no-active'))
+  btn.classList.add(value ? 'yes-active' : 'no-active')
+}
+
+async function addManualExercise() {
+  const exerciseId = document.getElementById('manual-ex-select').value
+  const weight = parseFloat(document.getElementById('manual-weight').value)
+  const reps = parseInt(document.getElementById('manual-reps').value)
+
+  if (!exerciseId) {
+    showError('manual-ex-error', 'Please select an exercise'); return
+  }
+  if (!weight || weight <= 0) {
+    showError('manual-ex-error', 'Please enter valid weight'); return
+  }
+  if (!reps || reps < 1) {
+    showError('manual-ex-error', 'Please enter valid reps'); return
+  }
+
+  try {
+    await apiRequest(`/sessions/${activeSessionId}/exercises`, 'POST', {
+      exercise_id: parseInt(exerciseId),
+      weight_kg: weight, reps,
+      reached_failure: manualFailure
+    })
+
+    document.getElementById('manual-ex-select').value = ''
+    document.getElementById('manual-weight').value = ''
+    document.getElementById('manual-reps').value = ''
+    manualFailure = false
+    document.querySelectorAll('#manual-ex-form .failure-btn')
+      .forEach(b => b.classList.remove('yes-active', 'no-active'))
+    toggleForm('manual-ex-form')
+    alert('✅ Exercise added!')
+  } catch (err) {
+    showError('manual-ex-error', err.message)
+  }
+}
+
+async function finishWorkout() {
+  if (!activeSessionId) return
+
+  let logged = 0, skipped = 0
+
+  for (let i = 0; i < currentWorkoutExercises.length; i++) {
+    const ex = currentWorkoutExercises[i]
+    const weight = parseFloat(document.getElementById(`w-kg-${i}`)?.value)
+    const reps = parseInt(document.getElementById(`w-rep-${i}`)?.value)
+    const failure = failureState[i] ?? false
+
+    if (!weight || !reps) { skipped++; continue }
+
+    try {
+      await apiRequest(`/sessions/${activeSessionId}/exercises`, 'POST', {
+        exercise_id: ex.exercise_id,
+        weight_kg: weight, reps,
+        reached_failure: failure
+      })
+      logged++
+    } catch {}
+  }
+
+  activeSessionId = null
+  currentWorkoutExercises = []
+  failureState = {}
+
+  document.getElementById('active-workout').classList.add('hidden')
+  document.getElementById('workout-select-program').classList.remove('hidden')
+
+  alert(`✅ Workout done!\n${logged} logged${skipped ? `, ${skipped} skipped` : ''}.`)
+  await loadCalendar()
+}
+
+async function cancelWorkout() {
+  if (!confirm('Cancel workout?')) return
+  try {
+    if (activeSessionId) {
+      await apiRequest(`/sessions/${activeSessionId}`, 'DELETE')
+    }
+  } catch {}
+
+  activeSessionId = null
+  currentWorkoutExercises = []
+  failureState = {}
+
+  document.getElementById('active-workout').classList.add('hidden')
+  document.getElementById('workout-select-program').classList.remove('hidden')
+}
+
+// ============================================
+// CALENDAR
+// ============================================
+
+async function loadCalendar() {
+  try {
+    allSessions = await apiRequest('/sessions')
+    renderCalendar()
+  } catch (err) {
+    console.error('Calendar error:', err)
+  }
+}
+
+function changeMonth(dir) {
+  calendarDate = new Date(
+    calendarDate.getFullYear(),
+    calendarDate.getMonth() + dir,
+    1
+  )
+  renderCalendar()
+}
+
+function renderCalendar() {
+  const year = calendarDate.getFullYear()
+  const month = calendarDate.getMonth()
+
+  document.getElementById('calendar-title').textContent =
+    calendarDate.toLocaleDateString('en-US', {
+      month: 'long', year: 'numeric'
+    })
+
+  const sessionDays = new Set(
+    allSessions
+      .filter(s => {
+        const d = new Date(s.session_date)
+        return d.getFullYear() === year && d.getMonth() === month
+      })
+      .map(s => new Date(s.session_date).getDate())
+  )
+
+  const today = new Date()
+  const firstDay = new Date(year, month, 1).getDay() || 7
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  let html = `
+    <div class="calendar-grid">
+      <div class="calendar-day-name">Mon</div>
+      <div class="calendar-day-name">Tue</div>
+      <div class="calendar-day-name">Wed</div>
+      <div class="calendar-day-name">Thu</div>
+      <div class="calendar-day-name">Fri</div>
+      <div class="calendar-day-name">Sat</div>
+      <div class="calendar-day-name">Sun</div>
+  `
+
+  for (let i = 1; i < firstDay; i++) {
+    html += `<div class="calendar-day empty"></div>`
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear()
+    const hasWorkout = sessionDays.has(d)
+
+    let cls = hasWorkout
+      ? 'calendar-day has-workout'
+      : isToday
+        ? 'calendar-day today'
+        : 'calendar-day normal'
+
+    html += `
+      <div class="${cls}"
+        ${hasWorkout
+          ? `onclick="showDayDetail(${year}, ${month+1}, ${d})"`
+          : ''}>
+        ${d}
+        ${hasWorkout ? '<div class="workout-dot"></div>' : ''}
+      </div>
+    `
+  }
+
+  html += '</div>'
+  document.getElementById('calendar-grid').innerHTML = html
+}
+
+async function showDayDetail(year, month, day) {
+  const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+  const container = document.getElementById('calendar-detail')
+
+  const daySessions = allSessions.filter(s =>
+    s.session_date?.startsWith(dateStr)
+  )
+
+  if (!daySessions.length) {
+    container.classList.add('hidden')
+    return
+  }
+
+  container.classList.remove('hidden')
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>'
+
+  try {
+    const detail = await apiRequest(`/sessions/${daySessions[0].id}`)
+
+    container.innerHTML = `
+      <div class="form-card">
+        <h3 style="margin-bottom:16px">
+          📅 ${new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+            weekday:'long', month:'long', day:'numeric'
+          })}
+        </h3>
+        ${detail.exercises?.length
+          ? detail.exercises.map(ex => `
+              <div style="display:flex; justify-content:space-between;
+                padding:10px 0; border-bottom:1px solid var(--border)">
+                <div>
+                  <strong>${ex.exercise_name}</strong>
+                  <p style="color:var(--text-dim); font-size:0.82rem">
+                    ${ex.weight_kg}kg × ${ex.reps} reps
+                  </p>
+                </div>
+                <span class="badge ${ex.reached_failure ? 'badge-green' : ''}">
+                  ${ex.reached_failure ? '✅ Failure' : '❌ No failure'}
+                </span>
+              </div>
+            `).join('')
+          : '<p style="color:var(--text-dim)">No exercises logged.</p>'
+        }
+      </div>
+    `
+  } catch (err) {
+    container.innerHTML = `<p style="color:var(--danger)">${err.message}</p>`
+  }
+}
+
+// fillExerciseDropdown — exercises sayfasıyla ortak kullanılıyor
+function fillExerciseDropdown(selectId) {
+  const select = document.getElementById(selectId)
+  if (!select) return
+  select.innerHTML = '<option value="">Select exercise...</option>'
+  allExercises.forEach(ex => {
+    const option = document.createElement('option')
+    option.value = ex.id
+    option.textContent = `${ex.name} (${ex.muscle_group})`
+    select.appendChild(option)
+  })
 }
 
 // ============================================
