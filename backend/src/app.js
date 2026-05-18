@@ -1,6 +1,6 @@
 const express = require('express')
 const cors = require('cors')
-const path = require('path') // Node.js dahili path modülü eklendi
+const path = require('path') // Node.js dahili path modülü
 const swaggerUi = require('swagger-ui-express')
 const swaggerSpec = require('./swagger')
 require('dotenv').config()
@@ -42,8 +42,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'HIT Tracker is running' })
 })
 
-// Frontend statik dosyalarını sunma (En alta eklendi)
+// --- STATİK DOSYALAR (Frontend & Resimler) ---
+
+// Frontend klasörünü serve et
 app.use(express.static(path.join(__dirname, '../../frontend')))
+
+// Egzersiz resimlerini serve et
+app.use('/images', express.static(path.join(__dirname, '../../frontend/public/images')))
 
 // 7. Sunucuyu Başlatma
 const PORT = process.env.PORT || 3000

@@ -1,186 +1,209 @@
 const pool = require('./pool')
+const fs = require('fs')
+const path = require('path')
 require('dotenv').config()
 
-// wger API base URL
-const WGER_API = 'https://wger.de/api/v2'
-
-// Kas grubu ID → isim eşleştirmesi
-// wger API sayısal ID kullanıyor
-const MUSCLE_GROUPS = {
-  1: 'Biceps',
-  2: 'Anterior Deltoid',
-  3: 'Chest',
-  4: 'Triceps',
-  5: 'Back',
-  6: 'Legs',
-  7: 'Abs',
-  8: 'Calves',
-  9: 'Glutes',
-  10: 'Hamstrings',
-  11: 'Quadriceps',
-  12: 'Shoulders',
-  13: 'Traps',
-  14: 'Forearms'
+const MUSCLE_MAP = {
+  'chest': 'Chest',
+  'triceps': 'Triceps',
+  'biceps': 'Biceps',
+  'shoulders': 'Shoulders',
+  'middle back': 'Back',
+  'upper back': 'Back',
+  'lower back': 'Back',
+  'lats': 'Back',
+  'traps': 'Traps',
+  'forearms': 'Forearms',
+  'quadriceps': 'Quadriceps',
+  'hamstrings': 'Hamstrings',
+  'glutes': 'Glutes',
+  'calves': 'Calves',
+  'abductors': 'Legs',
+  'adductors': 'Legs',
+  'abdominals': 'Abs',
+  'neck': 'Neck'
 }
 
-// Ekipman ID → isim
-const EQUIPMENT = {
-  1: 'Barbell',
-  2: 'SZ-Bar',
-  3: 'Dumbbell',
-  4: 'Gym mat',
-  5: 'Swiss Ball',
-  6: 'Pull-up Bar',
-  7: 'Bodyweight',
-  8: 'Bench',
-  9: 'Incline Bench',
-  10: 'Kettlebell',
-  11: 'Cable',
-  12: 'Machine'
+const EQUIPMENT_MAP = {
+  'barbell': 'Barbell',
+  'dumbbell': 'Dumbbell',
+  'body only': 'Bodyweight',
+  'machine': 'Machine',
+  'cable': 'Cable',
+  'kettlebells': 'Kettlebell',
+  'bands': 'Resistance Band',
+  'medicine ball': 'Medicine Ball',
+  'exercise ball': 'Swiss Ball',
+  'foam roll': 'Foam Roller',
+  'e-z curl bar': 'EZ Bar',
+  'other': 'Other'
 }
 
-async function fetchExercises() {
-  console.log('🏋️ Starting exercise seed from wger API...')
-
-  let allExercises = []
-  let url = `${WGER_API}/exercise/?format=json&language=2&limit=100&offset=0`
-  // language=2 → İngilizce egzersizler
-
-  // wger API sayfalı sonuç döndürüyor
-  // "next" alanı dolduğu sürece devam et
-  while (url) {
-    console.log(`Fetching: ${url}`)
-    const response = await fetch(url)
-    const data = await response.json()
-
-    allExercises = [...allExercises, ...data.results]
-    console.log(`Fetched ${allExercises.length} exercises so far...`)
-
-    // Sonraki sayfa var mı?
-    url = data.next
-  }
-
-  return allExercises
+const REST_DAYS_MAP = {
+  'Chest': 5, 'Back': 6, 'Quadriceps': 7,
+  'Hamstrings': 7, 'Glutes': 6, 'Shoulders': 5,
+  'Triceps': 4, 'Biceps': 4, 'Calves': 3,
+  'Abs': 3, 'Traps': 4, 'Forearms': 3,
+  'Legs': 7, 'Neck': 3
 }
 
-async function fetchExerciseDetails(exerciseId) {
-  // Her egzersiz için detay çek (açıklama, kas grubu)
-  try {
-    const response = await fetch(
-      `${WGER_API}/exerciseinfo/${exerciseId}/?format=json`
-    )
-    return await response.json()
-  } catch {
-    return null
-  }
-}
-
-async function seedDatabase(exercises) {
-  console.log(`\n💾 Saving ${exercises.length} exercises to database...`)
-
-  let saved = 0
-  let skipped = 0
-
-  for (const exercise of exercises) {
-    try {
-      // Detay bilgisi al
-      const detail = await fetchExerciseDetails(exercise.id)
-      if (!detail) { skipped++; continue }
-
-      // İngilizce açıklama bul
-      const translation = detail.translations?.find(t => t.language === 2)
-      if (!translation || !translation.name) { skipped++; continue }
-
-      const name = translation.name.trim()
-      if (!name) { skipped++; continue }
-
-      // Açıklamadan HTML taglarını temizle
-      const description = translation.description
-        ? translation.description.replace(/<[^>]*>/g, '').trim().substring(0, 1000)
-        : null
-
-      // Ana kas grubu
-      const primaryMuscle = detail.muscles?.[0]
-      const muscleGroup = primaryMuscle
-        ? MUSCLE_GROUPS[primaryMuscle.id] || 'General'
-        : 'General'
-
-      // Ekipman
-      const equipmentId = detail.equipment?.[0]?.id
-      const equipment = equipmentId ? EQUIPMENT[equipmentId] : null
-
-      // Mentzer HIT için varsayılan dinlenme süresi
-      // Bacak egzersizleri daha uzun dinlenme gerektirir
-      const isLeg = ['Legs', 'Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
-        .includes(muscleGroup)
-      const required_rest_days = isLeg ? 7 : 5
-
-      // Veritabanına kaydet
-      // ON CONFLICT → aynı isimde egzersiz varsa atla
-      await pool.query(
-        `INSERT INTO exercises 
-          (name, muscle_group, description, required_rest_days, equipment, is_custom)
-         VALUES ($1, $2, $3, $4, $5, false)
-         ON CONFLICT (name) DO NOTHING`,
-        [name, muscleGroup, description, required_rest_days, equipment]
-      )
-
-      saved++
-
-      // Her 50 egzersizde bir ilerlemeyi göster
-      if (saved % 50 === 0) {
-        console.log(`✅ Saved ${saved} exercises...`)
-      }
-
-      // API'ye çok hızlı istek atmamak için bekle
-      // Rate limiting'e takılmamak için
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-    } catch (err) {
-      console.error(`Error saving exercise ${exercise.id}:`, err.message)
-      skipped++
-    }
-  }
-
-  return { saved, skipped }
-}
+const ALLOWED_LEVELS = ['beginner', 'intermediate']
 
 async function main() {
   try {
-    // Önce tabloyu güncelle — yeni kolonlar ekle
+    console.log('🚀 Starting exercises.json seed...\n')
+
+    const dataDir = path.join(__dirname, 'exercises_data')
+
+    if (!fs.existsSync(dataDir)) {
+      console.error('❌ exercises_data folder not found!')
+      process.exit(1)
+    }
+
+    // Tablo güncellemeleri — gereksiz kolonları da temizle
     await pool.query(`
       ALTER TABLE exercises 
+      ADD COLUMN IF NOT EXISTS image_url TEXT,
       ADD COLUMN IF NOT EXISTS equipment VARCHAR(50),
       ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS wger_id INTEGER
+      ADD COLUMN IF NOT EXISTS level VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS secondary_muscles TEXT[],
+      ADD COLUMN IF NOT EXISTS instructions TEXT[]
     `)
 
-    // Unique constraint ekle — aynı isimde iki egzersiz olmasın
+    // Gereksiz kolonları kaldır
+    const dropColumns = ['wger_id', 'force', 'mechanic']
+    for (const col of dropColumns) {
+      await pool.query(
+        `ALTER TABLE exercises DROP COLUMN IF EXISTS ${col}`
+      ).catch(() => {})
+    }
+
+    // gif_url → image_url olarak yeniden adlandır
     await pool.query(`
       ALTER TABLE exercises 
-      ADD CONSTRAINT IF NOT EXISTS exercises_name_unique UNIQUE (name)
+      RENAME COLUMN gif_url TO image_url
     `).catch(() => {
-      // Constraint zaten varsa hata verme
-      console.log('Unique constraint already exists, continuing...')
+      console.log('image_url already exists or gif_url not found')
     })
 
-    console.log('✅ Database schema updated')
+    // Unique constraint
+    try {
+      await pool.query(`
+        ALTER TABLE exercises 
+        ADD CONSTRAINT exercises_name_unique UNIQUE (name)
+      `)
+    } catch {
+      console.log('Unique constraint already exists')
+    }
 
-    // Egzersizleri çek
-    const exercises = await fetchExercises()
-    console.log(`\n📦 Total exercises fetched: ${exercises.length}`)
+    console.log('✅ Schema updated\n')
 
-    // Veritabanına kaydet
-    const { saved, skipped } = await seedDatabase(exercises)
+    // Mevcut seed edilmiş egzersizleri temizle
+    await pool.query(`DELETE FROM exercises WHERE is_custom = false OR is_custom IS NULL`)
+    console.log('🗑️  Cleared existing exercises\n')
+
+    const folders = fs.readdirSync(dataDir).filter(f =>
+      fs.statSync(path.join(dataDir, f)).isDirectory()
+    )
+
+    console.log(`📦 Found ${folders.length} exercise folders`)
+    console.log('💾 Processing...\n')
+
+    let saved = 0
+    let skipped = 0
+
+    for (const folder of folders) {
+      const folderPath = path.join(dataDir, folder)
+      const jsonPath = path.join(folderPath, 'exercise.json')
+
+      if (!fs.existsSync(jsonPath)) { skipped++; continue }
+
+      const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'))
+
+      // Seviye filtresi
+      if (!ALLOWED_LEVELS.includes(data.level)) { skipped++; continue }
+
+      if (!data.name?.trim()) { skipped++; continue }
+
+      // Kas grubu
+      const primaryMuscle = data.primaryMuscles?.[0]
+      const muscleGroup = MUSCLE_MAP[primaryMuscle] || 'General'
+
+      // Ekipman
+      const equipment = EQUIPMENT_MAP[data.equipment] || 'Other'
+
+      // Dinlenme süresi
+      const required_rest_days = REST_DAYS_MAP[muscleGroup] || 5
+
+      // Resim yolları — DB'de sadece URL yolu sakla
+      const imagesDir = path.join(folderPath, 'images')
+      let image_url = null
+      let image_url_2 = null
+
+      if (fs.existsSync(imagesDir)) {
+        const images = fs.readdirSync(imagesDir)
+          .filter(f => /\.(jpg|jpeg|png|gif)$/i.test(f))
+          .sort()
+
+        if (images[0]) {
+          image_url = `/images/${folder}/images/${images[0]}`
+        }
+        if (images[1]) {
+          image_url_2 = `/images/${folder}/images/${images[1]}`
+        }
+      }
+
+      // Açıklama
+      const description = data.instructions?.join(' ').substring(0, 1000) || null
+
+      try {
+        await pool.query(
+          `INSERT INTO exercises 
+            (name, muscle_group, description, required_rest_days,
+             equipment, image_url, is_custom, level,
+             secondary_muscles, instructions)
+           VALUES ($1, $2, $3, $4, $5, $6, false, $7, $8, $9)
+           ON CONFLICT (name) DO UPDATE SET
+             image_url = EXCLUDED.image_url,
+             description = EXCLUDED.description`,
+          [
+            data.name.trim(),
+            muscleGroup,
+            description,
+            required_rest_days,
+            equipment,
+            image_url,
+            data.level,
+            data.secondaryMuscles || [],
+            data.instructions || []
+          ]
+        )
+        saved++
+        if (saved % 50 === 0) console.log(`  ✅ ${saved} saved...`)
+      } catch (err) {
+        console.error(`Error: ${data.name} — ${err.message}`)
+        skipped++
+      }
+    }
 
     console.log(`\n🎉 Seed complete!`)
     console.log(`✅ Saved: ${saved}`)
     console.log(`⏭️  Skipped: ${skipped}`)
 
+    // Dağılım
+    const dist = await pool.query(`
+      SELECT muscle_group, COUNT(*) as count
+      FROM exercises
+      GROUP BY muscle_group
+      ORDER BY count DESC
+    `)
+    console.log('\n📊 Distribution:')
+    dist.rows.forEach(r => console.log(`  ${r.muscle_group}: ${r.count}`))
+
   } catch (err) {
-    console.error('Seed failed:', err)
+    console.error('❌ Seed failed:', err)
   } finally {
-    // Bağlantıyı kapat
     await pool.end()
     process.exit(0)
   }

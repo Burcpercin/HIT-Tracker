@@ -1,9 +1,18 @@
 CREATE TABLE IF NOT EXISTS exercises (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) UNIQUE NOT NULL,
   muscle_group VARCHAR(50) NOT NULL,
   description TEXT,
   required_rest_days INTEGER NOT NULL DEFAULT 5,
+  gif_url TEXT,
+  image_url TEXT,
+  equipment VARCHAR(50),
+  is_custom BOOLEAN DEFAULT FALSE,
+  level VARCHAR(20),
+  force VARCHAR(20),
+  mechanic VARCHAR(20),
+  secondary_muscles TEXT[],
+  instructions TEXT[],
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
