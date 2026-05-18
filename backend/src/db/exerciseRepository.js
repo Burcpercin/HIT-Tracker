@@ -3,11 +3,15 @@ const pool = require('./pool')
 const exerciseRepository = {
 
   async findAll() {
-    const result = await pool.query(
-      'SELECT * FROM exercises ORDER BY created_at DESC'
-    )
-    return result.rows
-  },
+  const result = await pool.query(
+    `SELECT id, name, muscle_group, description, 
+            required_rest_days, equipment, is_custom
+     FROM exercises 
+     ORDER BY is_custom DESC, name ASC`
+    // is_custom DESC → kullanıcının eklediği egzersizler üstte
+  )
+  return result.rows
+},
 
   async findById(id) {
     const result = await pool.query(

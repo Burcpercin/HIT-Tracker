@@ -10,7 +10,8 @@
   "start": "node src/app.js",
   "dev": "nodemon src/app.js",
   "test": "cross-env NODE_ENV=test jest --forceExit",
-  "test:coverage": "cross-env NODE_ENV=test jest --coverage --forceExit"
+  "test:coverage": "cross-env NODE_ENV=test jest --coverage --forceExit",
+  "seed": "node src/db/seedExercises.js"
 },
   "keywords": [],
   "author": "",
