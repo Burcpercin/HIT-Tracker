@@ -478,7 +478,12 @@
             <div id="manual-ex-form" class="form-card hidden" style="margin-top:16px">
               <div class="form-group">
                 <label>Exercise</label>
-                <select id="manual-ex-select"></select>
+                <!-- Arama kutusu eklendi ve select güncellendi -->
+                <input type="text" id="manual-search" 
+                  placeholder="Search exercise..." 
+                  oninput="filterManualExDropdown()" 
+                  style="margin-bottom:6px; padding:8px; width:100%; box-sizing:border-box;">
+                <select id="manual-ex-select" size="5" style="height:auto; width:100%;"></select>
               </div>
               <div class="two-col">
                 <div class="form-group">
