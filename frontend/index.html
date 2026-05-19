@@ -9,639 +9,509 @@
 </head>
 <body>
 
-  <!-- NAVBAR -->
-  <nav id="navbar" class="hidden">
-    <div class="nav-brand">
-      <i data-lucide="zap"></i>
-      HIT Tracker
-    </div>
-    <div class="nav-links">
-      <button onclick="showView('dashboard')" data-view="dashboard">
-        <i data-lucide="layout-dashboard"></i>
-        <span>Dashboard</span>
-      </button>
-      <button onclick="showView('exercises')" data-view="exercises">
-        <i data-lucide="dumbbell"></i>
-        <span>Exercises</span>
-      </button>
-      <button onclick="showView('training')" data-view="training">
-        <i data-lucide="calendar-days"></i>
-        <span>Training</span>
-      </button>
-      <button onclick="showView('ai-suggestion')" data-view="ai-suggestion">
-        <i data-lucide="bot"></i>
-        <span>AI Coach</span>
-      </button>
-      <button onclick="logout()" class="btn-logout">
-        <i data-lucide="log-out"></i>
-        <span>Logout</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- AUTH -->
-  <div id="auth-view" class="view">
-    <div class="auth-wrap">
-      <div class="auth-card">
-        <div class="auth-logo">
-          <i data-lucide="zap"></i>
-        </div>
-        <h1>HIT Tracker</h1>
-        <p class="auth-sub">Train hard. Rest harder. Mike Mentzer style.</p>
-
-        <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchTab('login')">Login</button>
-          <button class="tab-btn" onclick="switchTab('register')">Register</button>
-        </div>
-
-        <div id="login-form">
-          <div class="form-group">
-            <label>Email</label>
-            <div class="input-wrap">
-              <i data-lucide="mail"></i>
-              <input type="email" id="login-email" placeholder="your@email.com">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <div class="input-wrap">
-              <i data-lucide="lock"></i>
-              <input type="password" id="login-password" placeholder="••••••">
-            </div>
-          </div>
-          <div id="login-error" class="error-msg hidden"></div>
-          <button class="btn-primary full-width" onclick="login()">
-            <i data-lucide="log-in"></i> Login
-          </button>
-        </div>
-
-        <div id="register-form" class="hidden">
-          <div class="form-group">
-            <label>Username</label>
-            <div class="input-wrap">
-              <i data-lucide="user"></i>
-              <input type="text" id="reg-username" placeholder="mentzer_fan">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <div class="input-wrap">
-              <i data-lucide="mail"></i>
-              <input type="email" id="reg-email" placeholder="your@email.com">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Password</label>
-            <div class="input-wrap">
-              <i data-lucide="lock"></i>
-              <input type="password" id="reg-password" placeholder="Min 6 characters">
-            </div>
-          </div>
-          <div id="register-error" class="error-msg hidden"></div>
-          <button class="btn-primary full-width" onclick="register()">
-            <i data-lucide="user-plus"></i> Create Account
-          </button>
-        </div>
-      </div>
-    </div>
+<!-- NAVBAR -->
+<nav id="navbar" class="hidden">
+  <div class="nav-brand">
+    <i data-lucide="zap"></i> HIT Tracker
   </div>
-
-  <!-- ONBOARDING -->
-  <div id="onboarding-view" class="view hidden">
-    <div class="onboarding-wrap">
-      <div class="onboarding-card">
-        <div class="onboarding-header">
-          <div class="progress-bar">
-            <div id="progress-fill" class="progress-fill"></div>
-          </div>
-          <p class="step-label">Step <span id="step-current">1</span> of 5</p>
-        </div>
-
-        <!-- Step 1 -->
-        <div class="ob-step" id="step-1">
-          <h2>Personal Info</h2>
-          <p class="step-desc">Let's start with the basics</p>
-          <div class="form-group">
-            <label>Date of Birth</label>
-            <div class="input-wrap">
-              <i data-lucide="calendar"></i>
-              <input type="date" id="ob-birthdate">
-            </div>
-            <small>Must be 13-100 years old</small>
-          </div>
-          <div class="form-group">
-            <label>Gender</label>
-            <div class="choice-grid">
-              <button class="choice-card" onclick="selectChoice('gender','male',this)">
-                <i data-lucide="mars"></i>
-                <span>Male</span>
-              </button>
-              <button class="choice-card" onclick="selectChoice('gender','female',this)">
-                <i data-lucide="venus"></i>
-                <span>Female</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="ob-step hidden" id="step-2">
-          <h2>Measurements</h2>
-          <p class="step-desc">Your physical stats</p>
-          <div class="form-group">
-            <label>Height (cm)</label>
-            <div class="input-wrap">
-              <i data-lucide="ruler"></i>
-              <input type="number" id="ob-height" placeholder="175">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Weight (kg)</label>
-            <div class="input-wrap">
-              <i data-lucide="weight"></i>
-              <input type="number" id="ob-weight" placeholder="80" step="0.1">
-            </div>
-          </div>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="ob-step hidden" id="step-3">
-          <h2>Activity Level</h2>
-          <p class="step-desc">How active are you currently?</p>
-          <div class="activity-grid">
-            <button class="activity-card" onclick="selectChoice('activity','sedentary',this)">
-              <i data-lucide="armchair"></i>
-              <strong>Sedentary</strong>
-              <small>Desk job, little movement</small>
-            </button>
-            <button class="activity-card" onclick="selectChoice('activity','light',this)">
-              <i data-lucide="footprints"></i>
-              <strong>Light</strong>
-              <small>1-3 days/week</small>
-            </button>
-            <button class="activity-card" onclick="selectChoice('activity','moderate',this)">
-              <i data-lucide="person-standing"></i>
-              <strong>Moderate</strong>
-              <small>3-5 days/week</small>
-            </button>
-            <button class="activity-card" onclick="selectChoice('activity','active',this)">
-              <i data-lucide="dumbbell"></i>
-              <strong>Active</strong>
-              <small>6-7 days/week</small>
-            </button>
-            <button class="activity-card" onclick="selectChoice('activity','very_active',this)">
-              <i data-lucide="flame"></i>
-              <strong>Very Active</strong>
-              <small>Athlete level</small>
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 4 -->
-        <div class="ob-step hidden" id="step-4">
-          <h2>Your Goal</h2>
-          <p class="step-desc">What do you want to achieve?</p>
-          <div class="goal-grid">
-            <button class="goal-card" onclick="selectChoice('goal','muscle_gain',this)">
-              <i data-lucide="dumbbell"></i>
-              <strong>Build Muscle</strong>
-              <small>Gain mass and size</small>
-            </button>
-            <button class="goal-card" onclick="selectChoice('goal','fat_loss',this)">
-              <i data-lucide="flame"></i>
-              <strong>Burn Fat</strong>
-              <small>Lose body fat</small>
-            </button>
-            <button class="goal-card" onclick="selectChoice('goal','strength',this)">
-              <i data-lucide="trending-up"></i>
-              <strong>Get Stronger</strong>
-              <small>Pure strength</small>
-            </button>
-            <button class="goal-card" onclick="selectChoice('goal','endurance',this)">
-              <i data-lucide="heart-pulse"></i>
-              <strong>Endurance</strong>
-              <small>Conditioning</small>
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 5 -->
-        <div class="ob-step hidden" id="step-5">
-          <h2>Your Summary</h2>
-          <p class="step-desc">Looking good! Here's your profile</p>
-          <div id="profile-summary" class="summary-grid"></div>
-          <div id="calorie-preview" class="calorie-card"></div>
-        </div>
-
-        <div id="onboarding-error" class="error-msg hidden"></div>
-
-        <div class="ob-nav">
-          <button id="ob-back" class="btn-secondary hidden" onclick="obBack()">
-            <i data-lucide="arrow-left"></i> Back
-          </button>
-          <button id="ob-next" class="btn-primary" onclick="obNext()">
-            Next <i data-lucide="arrow-right"></i>
-          </button>
-          <button id="ob-finish" class="btn-primary hidden" onclick="obFinish()">
-            Start Training <i data-lucide="zap"></i>
-          </button>
-        </div>
-      </div>
-    </div>
+  <div class="nav-links">
+    <button data-view="dashboard" onclick="showView('dashboard')">
+      <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+    </button>
+    <button data-view="exercises" onclick="showView('exercises')">
+      <i data-lucide="dumbbell"></i><span>Exercises</span>
+    </button>
+    <button data-view="training" onclick="showView('training')">
+      <i data-lucide="calendar-days"></i><span>Training</span>
+    </button>
+    <button data-view="ai-suggestion" onclick="showView('ai-suggestion')">
+      <i data-lucide="bot"></i><span>AI Coach</span>
+    </button>
+    <button class="btn-logout" onclick="logout()">
+      <i data-lucide="log-out"></i><span>Logout</span>
+    </button>
   </div>
+</nav>
 
-  <!-- DASHBOARD -->
-  <div id="dashboard-view" class="view hidden">
-    <div class="container">
-      <div class="dash-header">
-        <div>
-          <h1>Welcome back, <span id="dash-username"></span></h1>
-          <p class="dash-sub">Ready to train with maximum intensity?</p>
-        </div>
+<!-- ═══ AUTH ═══ -->
+<div id="auth-view" class="view">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><i data-lucide="zap"></i></div>
+      <h1>HIT Tracker</h1>
+      <p class="auth-sub">Train hard. Rest harder. Mike Mentzer style.</p>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
       </div>
-
-      <div id="daily-quote" class="quote-card"></div>
-
-      <div class="stats-row">
-        <div class="stat-card">
-          <i data-lucide="calendar-check"></i>
-          <div>
-            <span class="stat-num" id="stat-sessions">0</span>
-            <span class="stat-lbl">Sessions</span>
+      <!-- Login -->
+      <div id="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-wrap">
+            <i data-lucide="mail"></i>
+            <input type="email" id="login-email" placeholder="your@email.com">
           </div>
         </div>
-        <div class="stat-card">
-          <i data-lucide="dumbbell"></i>
-          <div>
-            <span class="stat-num" id="stat-exercises">0</span>
-            <span class="stat-lbl">Exercises</span>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i data-lucide="lock"></i>
+            <input type="password" id="login-password" placeholder="••••••">
           </div>
         </div>
-        <div class="stat-card">
-          <i data-lucide="flame"></i>
-          <div>
-            <span class="stat-num" id="stat-calories">—</span>
-            <span class="stat-lbl">Daily kcal</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <i data-lucide="clipboard-list"></i>
-          <div>
-            <span class="stat-num" id="stat-programs">0</span>
-            <span class="stat-lbl">Programs</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="dash-grid">
-        <div class="dash-card">
-          <div class="dash-card-header">
-            <h3>Recent Sessions</h3>
-            <button class="btn-link" onclick="showView('training')">View all</button>
-          </div>
-          <div id="recent-sessions"></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-header">
-            <h3>Active Program</h3>
-            <button class="btn-link" onclick="showView('training')">Manage</button>
-          </div>
-          <div id="active-program"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- EXERCISES -->
-  <div id="exercises-view" class="view hidden">
-    <div class="container">
-      <div class="page-header">
-        <h1>Exercises</h1>
-        <button class="btn-primary" onclick="toggleForm('exercise-form')">
-          <i data-lucide="plus"></i> Add Custom
+        <div id="login-error" class="error-msg hidden"></div>
+        <button class="btn-primary full-width" onclick="login()">
+          <i data-lucide="log-in"></i> Login
         </button>
       </div>
-
-      <div class="filter-row" id="muscle-filters"></div>
-
-      <div class="search-wrap">
-        <i data-lucide="search"></i>
-        <input type="text" id="exercise-search"
-          placeholder="Search exercises..."
-          oninput="applyFilters()">
+      <!-- Register -->
+      <div id="register-form" class="hidden">
+        <div class="form-group">
+          <label>Username</label>
+          <div class="input-wrap">
+            <i data-lucide="user"></i>
+            <input type="text" id="reg-username" placeholder="mentzer_fan">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-wrap">
+            <i data-lucide="mail"></i>
+            <input type="email" id="reg-email" placeholder="your@email.com">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i data-lucide="lock"></i>
+            <input type="password" id="reg-password" placeholder="Min 6 characters">
+          </div>
+        </div>
+        <div id="register-error" class="error-msg hidden"></div>
+        <button class="btn-primary full-width" onclick="register()">
+          <i data-lucide="user-plus"></i> Create Account
+        </button>
       </div>
+    </div>
+  </div>
+</div>
 
-      <div id="exercise-form" class="form-card hidden">
-        <h3>Add Custom Exercise</h3>
+<!-- ═══ ONBOARDING ═══ -->
+<div id="onboarding-view" class="view hidden">
+  <div class="onboarding-wrap">
+    <div class="onboarding-card">
+      <div class="onboarding-header">
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+        <p class="step-label">Step <span id="step-current">1</span> of 5</p>
+      </div>
+      <!-- Step 1 -->
+      <div class="ob-step" id="step-1">
+        <h2>Personal Info</h2>
+        <p class="step-desc">Let's start with the basics</p>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <div class="input-wrap">
+            <i data-lucide="calendar"></i>
+            <input type="date" id="ob-birthdate">
+          </div>
+          <small>Must be 13-100 years old</small>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <div class="choice-grid">
+            <button class="choice-card" onclick="selectChoice('gender','male',this)">
+              <i data-lucide="user"></i><span>Male</span>
+            </button>
+            <button class="choice-card" onclick="selectChoice('gender','female',this)">
+              <i data-lucide="user"></i><span>Female</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div class="ob-step hidden" id="step-2">
+        <h2>Measurements</h2>
+        <p class="step-desc">Your physical stats</p>
+        <div class="form-group">
+          <label>Height (cm)</label>
+          <div class="input-wrap">
+            <i data-lucide="ruler"></i>
+            <input type="number" id="ob-height" placeholder="175">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <div class="input-wrap">
+            <i data-lucide="activity"></i>
+            <input type="number" id="ob-weight" placeholder="80" step="0.1">
+          </div>
+        </div>
+      </div>
+      <!-- Step 3 -->
+      <div class="ob-step hidden" id="step-3">
+        <h2>Activity Level</h2>
+        <p class="step-desc">How active are you currently?</p>
+        <div class="activity-grid">
+          <button class="activity-card" onclick="selectChoice('activity','sedentary',this)">
+            <i data-lucide="armchair"></i><strong>Sedentary</strong><small>Desk job</small>
+          </button>
+          <button class="activity-card" onclick="selectChoice('activity','light',this)">
+            <i data-lucide="footprints"></i><strong>Light</strong><small>1-3 days/week</small>
+          </button>
+          <button class="activity-card" onclick="selectChoice('activity','moderate',this)">
+            <i data-lucide="activity"></i><strong>Moderate</strong><small>3-5 days/week</small>
+          </button>
+          <button class="activity-card" onclick="selectChoice('activity','active',this)">
+            <i data-lucide="dumbbell"></i><strong>Active</strong><small>6-7 days/week</small>
+          </button>
+          <button class="activity-card" onclick="selectChoice('activity','very_active',this)">
+            <i data-lucide="flame"></i><strong>Very Active</strong><small>Athlete level</small>
+          </button>
+        </div>
+      </div>
+      <!-- Step 4 -->
+      <div class="ob-step hidden" id="step-4">
+        <h2>Your Goal</h2>
+        <p class="step-desc">What do you want to achieve?</p>
+        <div class="goal-grid">
+          <button class="goal-card" onclick="selectChoice('goal','muscle_gain',this)">
+            <i data-lucide="dumbbell"></i><strong>Build Muscle</strong><small>Gain mass</small>
+          </button>
+          <button class="goal-card" onclick="selectChoice('goal','fat_loss',this)">
+            <i data-lucide="flame"></i><strong>Burn Fat</strong><small>Lose body fat</small>
+          </button>
+          <button class="goal-card" onclick="selectChoice('goal','strength',this)">
+            <i data-lucide="trending-up"></i><strong>Get Stronger</strong><small>Pure strength</small>
+          </button>
+          <button class="goal-card" onclick="selectChoice('goal','endurance',this)">
+            <i data-lucide="heart-pulse"></i><strong>Endurance</strong><small>Conditioning</small>
+          </button>
+        </div>
+      </div>
+      <!-- Step 5 -->
+      <div class="ob-step hidden" id="step-5">
+        <h2>Your Summary</h2>
+        <p class="step-desc">Looking good!</p>
+        <div id="profile-summary" class="summary-grid"></div>
+        <div id="calorie-preview" class="calorie-card"></div>
+      </div>
+      <div id="onboarding-error" class="error-msg hidden"></div>
+      <div class="ob-nav">
+        <button id="ob-back" class="btn-secondary hidden" onclick="obBack()">
+          <i data-lucide="arrow-left"></i> Back
+        </button>
+        <button id="ob-next" class="btn-primary" onclick="obNext()">
+          Next <i data-lucide="arrow-right"></i>
+        </button>
+        <button id="ob-finish" class="btn-primary hidden" onclick="obFinish()">
+          Start Training <i data-lucide="zap"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard-view" class="view hidden">
+  <div class="container">
+    <div class="dash-header">
+      <h1>Welcome, <span id="dash-username"></span></h1>
+      <p class="dash-sub">Ready to train with maximum intensity?</p>
+    </div>
+    <div id="daily-quote" class="quote-card"></div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <i data-lucide="calendar-check"></i>
+        <div><span class="stat-num" id="stat-sessions">0</span><span class="stat-lbl">Sessions</span></div>
+      </div>
+      <div class="stat-card">
+        <i data-lucide="dumbbell"></i>
+        <div><span class="stat-num" id="stat-exercises">0</span><span class="stat-lbl">Exercises</span></div>
+      </div>
+      <div class="stat-card">
+        <i data-lucide="flame"></i>
+        <div><span class="stat-num" id="stat-calories">—</span><span class="stat-lbl">Daily kcal</span></div>
+      </div>
+      <div class="stat-card">
+        <i data-lucide="clipboard-list"></i>
+        <div><span class="stat-num" id="stat-programs">0</span><span class="stat-lbl">Programs</span></div>
+      </div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h3>Recent Sessions</h3>
+          <button class="btn-link" onclick="showView('training')">View all</button>
+        </div>
+        <div id="recent-sessions"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h3>Active Program</h3>
+          <button class="btn-link" onclick="showView('training')">Manage</button>
+        </div>
+        <div id="active-program"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EXERCISES ═══ -->
+<div id="exercises-view" class="view hidden">
+  <div class="container">
+    <div class="page-header">
+      <h1>Exercises</h1>
+      <button class="btn-primary" onclick="toggleForm('exercise-form')">
+        <i data-lucide="plus"></i> Add Custom
+      </button>
+    </div>
+    <div class="filter-row" id="muscle-filters"></div>
+    <div class="search-wrap">
+      <i data-lucide="search"></i>
+      <input type="text" id="exercise-search" placeholder="Search exercises..." oninput="applyFilters()">
+    </div>
+    <div id="exercise-form" class="form-card hidden">
+      <h3>Add Custom Exercise</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="ex-name" placeholder="e.g. My Special Curl">
+      </div>
+      <div class="form-group">
+        <label>Muscle Group</label>
+        <select id="ex-muscle">
+          <option value="">Select...</option>
+          <option value="Chest">Chest</option>
+          <option value="Back">Back</option>
+          <option value="Shoulders">Shoulders</option>
+          <option value="Biceps">Biceps</option>
+          <option value="Triceps">Triceps</option>
+          <option value="Quadriceps">Quadriceps</option>
+          <option value="Hamstrings">Hamstrings</option>
+          <option value="Glutes">Glutes</option>
+          <option value="Calves">Calves</option>
+          <option value="Abs">Abs</option>
+          <option value="Traps">Traps</option>
+          <option value="Forearms">Forearms</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description (optional)</label>
+        <textarea id="ex-desc" placeholder="How to perform..." maxlength="1000"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Rest Days (min 3)</label>
+        <input type="number" id="ex-rest" value="5" min="3" max="14">
+      </div>
+      <div id="exercise-form-error" class="error-msg hidden"></div>
+      <div class="form-buttons">
+        <button class="btn-primary" onclick="createExercise()">
+          <i data-lucide="save"></i> Save
+        </button>
+        <button class="btn-secondary" onclick="toggleForm('exercise-form')">Cancel</button>
+      </div>
+    </div>
+    <div id="exercise-list" class="exercise-grid"></div>
+    <!-- Modal -->
+    <div id="exercise-modal" class="modal hidden">
+      <div class="modal-backdrop" onclick="closeModal()"></div>
+      <div class="modal-box">
+        <button class="modal-close-btn" onclick="closeModal()">
+          <i data-lucide="x"></i>
+        </button>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TRAINING ═══ -->
+<div id="training-view" class="view hidden">
+  <div class="container">
+    <div class="training-tabs">
+      <button class="t-tab active" onclick="switchTrainingTab('programs', this)">
+        <i data-lucide="clipboard-list"></i> Programs
+      </button>
+      <button class="t-tab" onclick="switchTrainingTab('workout', this)">
+        <i data-lucide="play-circle"></i> Workout
+      </button>
+      <button class="t-tab" onclick="switchTrainingTab('history', this)">
+        <i data-lucide="history"></i> History
+      </button>
+    </div>
+
+    <!-- PROGRAMS -->
+    <div id="tab-programs" class="t-content">
+      <div class="page-header" style="margin-top:24px">
+        <h2>My Programs</h2>
+        <button class="btn-primary" onclick="toggleForm('program-form')">
+          <i data-lucide="plus"></i> New
+        </button>
+      </div>
+      <div id="program-form" class="form-card hidden">
+        <h3>New Program</h3>
         <div class="form-group">
           <label>Name</label>
-          <input type="text" id="ex-name" placeholder="e.g. My Special Curl">
+          <input type="text" id="prog-name" placeholder="Heavy Duty Split">
         </div>
-        <div class="form-group">
-          <label>Muscle Group</label>
-          <select id="ex-muscle">
-            <option value="">Select...</option>
-            <option value="Chest">Chest</option>
-            <option value="Back">Back</option>
-            <option value="Shoulders">Shoulders</option>
-            <option value="Biceps">Biceps</option>
-            <option value="Triceps">Triceps</option>
-            <option value="Quadriceps">Quadriceps</option>
-            <option value="Hamstrings">Hamstrings</option>
-            <option value="Glutes">Glutes</option>
-            <option value="Calves">Calves</option>
-            <option value="Abs">Abs</option>
-            <option value="Traps">Traps</option>
-            <option value="Forearms">Forearms</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Description (optional)</label>
-          <textarea id="ex-desc" placeholder="How to perform..." maxlength="1000"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Rest Days (min 3)</label>
-          <input type="number" id="ex-rest" value="5" min="3" max="14">
-        </div>
-        <div id="exercise-form-error" class="error-msg hidden"></div>
+        <div id="program-form-error" class="error-msg hidden"></div>
         <div class="form-buttons">
-          <button class="btn-primary" onclick="createExercise()">
+          <button class="btn-primary" onclick="createProgram()">
             <i data-lucide="save"></i> Save
           </button>
-          <button class="btn-secondary" onclick="toggleForm('exercise-form')">
-            Cancel
-          </button>
+          <button class="btn-secondary" onclick="toggleForm('program-form')">Cancel</button>
         </div>
       </div>
-
-      <div id="exercise-list" class="exercise-grid"></div>
-
-      <!-- Exercise Modal -->
-      <div id="exercise-modal" class="modal hidden">
-        <div class="modal-backdrop" onclick="closeModal()"></div>
-        <div class="modal-box">
-          <button class="modal-close-btn" onclick="closeModal()">
-            <i data-lucide="x"></i>
-          </button>
-          <div id="modal-body"></div>
-        </div>
-      </div>
+      <div id="program-list"></div>
     </div>
-  </div>
 
-  <!-- TRAINING -->
-  <div id="training-view" class="view hidden">
-    <div class="container">
-      <div class="training-tabs">
-        <button class="t-tab active" onclick="switchTrainingTab('programs', this)">
-          <i data-lucide="clipboard-list"></i> Programs
-        </button>
-        <button class="t-tab" onclick="switchTrainingTab('workout', this)">
-          <i data-lucide="play-circle"></i> Workout
-        </button>
-        <button class="t-tab" onclick="switchTrainingTab('calendar', this)">
-          <i data-lucide="calendar"></i> Calendar
-        </button>
+    <!-- WORKOUT -->
+    <div id="tab-workout" class="t-content hidden">
+      <div id="workout-start" style="margin-top:24px">
+        <div id="active-prog-info" class="form-card"></div>
       </div>
-
-      <!-- PROGRAMS TAB -->
-      <div id="tab-programs" class="t-content">
-        <div class="page-header">
-          <h2>My Programs</h2>
-          <button class="btn-primary" onclick="toggleForm('program-form')">
-            <i data-lucide="plus"></i> New
-          </button>
-        </div>
-
-        <div id="program-form" class="form-card hidden">
-          <h3>New Program</h3>
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" id="prog-name" placeholder="Heavy Duty Split">
-          </div>
-          <div class="form-group">
-            <label>Goal</label>
-            <select id="prog-goal">
-              <option value="muscle_gain">Build Muscle</option>
-              <option value="fat_loss">Burn Fat</option>
-              <option value="strength">Get Stronger</option>
-              <option value="endurance">Endurance</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Days Per Week</label>
-            <input type="number" id="prog-days" value="3" min="1" max="7">
-          </div>
-          <div class="form-group">
-            <label>Description (optional)</label>
-            <textarea id="prog-desc" maxlength="1000"></textarea>
-          </div>
-          <div id="program-form-error" class="error-msg hidden"></div>
-          <div class="form-buttons">
-            <button class="btn-primary" onclick="createProgram()">
-              <i data-lucide="save"></i> Save
-            </button>
-            <button class="btn-secondary" onclick="toggleForm('program-form')">
-              Cancel
-            </button>
-          </div>
-        </div>
-
-        <div id="program-list"></div>
-      </div>
-
-      <!-- WORKOUT TAB -->
-      <div id="tab-workout" class="t-content hidden">
-        <div id="workout-select-program">
-          <h2 style="margin: 24px 0 20px">Choose Program</h2>
-          <div id="workout-program-cards"></div>
-        </div>
-
-        <div id="active-workout" class="hidden">
-          <div class="workout-header">
+      <div id="active-workout" class="hidden" style="margin-top:24px">
+        <div class="form-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
             <div>
-              <h2 id="workout-title"></h2>
-              <p id="workout-subtitle" class="workout-date"></p>
+              <h3 id="workout-title" style="margin-bottom:4px"></h3>
+              <p id="workout-date" style="color:var(--text-3); font-size:0.85rem"></p>
             </div>
             <button class="btn-ghost-danger" onclick="cancelWorkout()">
-              <i data-lucide="x-circle"></i> Cancel
+              <i data-lucide="x"></i> Cancel
             </button>
           </div>
-
           <div id="workout-exercises"></div>
-
-          <div class="extra-ex-section">
-            <button class="btn-secondary full-width"
-              onclick="toggleForm('manual-ex-form')">
-              <i data-lucide="plus-circle"></i> Add Extra Exercise
-            </button>
-            <div id="manual-ex-form" class="form-card hidden" style="margin-top:16px">
-              <div class="form-group">
-                <label>Exercise</label>
-                <!-- Arama kutusu eklendi ve select güncellendi -->
-                <input type="text" id="manual-search" 
-                  placeholder="Search exercise..." 
-                  oninput="filterManualExDropdown()" 
-                  style="margin-bottom:6px; padding:8px; width:100%; box-sizing:border-box;">
-                <select id="manual-ex-select" size="5" style="height:auto; width:100%;"></select>
-              </div>
-              <div class="two-col">
-                <div class="form-group">
-                  <label>Weight (kg)</label>
-                  <input type="number" id="manual-weight" placeholder="100" step="0.5">
-                </div>
-                <div class="form-group">
-                  <label>Reps</label>
-                  <input type="number" id="manual-reps" placeholder="8">
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Reached Failure?</label>
-                <div class="fail-toggle">
-                  <button class="fail-btn" onclick="setManualFailure(true, this)">
-                    <i data-lucide="check-circle"></i> Yes
-                  </button>
-                  <button class="fail-btn" onclick="setManualFailure(false, this)">
-                    <i data-lucide="x-circle"></i> No
-                  </button>
-                </div>
-              </div>
-              <div id="manual-ex-error" class="error-msg hidden"></div>
-              <button class="btn-primary" onclick="addManualExercise()">Add</button>
-            </div>
-          </div>
-
           <button class="btn-finish" onclick="finishWorkout()">
             <i data-lucide="check-circle-2"></i> Finish Workout
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- CALENDAR TAB -->
-      <div id="tab-calendar" class="t-content hidden">
-        <div class="cal-header">
-          <button class="btn-icon-sm" onclick="changeMonth(-1)">
-            <i data-lucide="chevron-left"></i>
-          </button>
-          <h2 id="calendar-title"></h2>
-          <button class="btn-icon-sm" onclick="changeMonth(1)">
-            <i data-lucide="chevron-right"></i>
-          </button>
-        </div>
-        <div id="calendar-grid"></div>
-        <div id="calendar-detail"></div>
+    <!-- HISTORY -->
+    <div id="tab-history" class="t-content hidden">
+      <div style="margin-top:24px">
+        <h2 style="margin-bottom:20px">Workout History</h2>
+        <div id="history-list"></div>
       </div>
     </div>
-  </div>
 
-  <!-- AI COACH -->
-  <div id="ai-suggestion-view" class="view hidden">
-    <div class="container">
-      <div class="page-header">
+  </div>
+</div>
+
+<!-- ═══ AI COACH ═══ -->
+<div id="ai-suggestion-view" class="view hidden">
+  <div class="container">
+    <div class="page-header">
+      <div>
         <h1><i data-lucide="bot"></i> AI Coach</h1>
         <small>Powered by Gemini — Mentzer style</small>
       </div>
-
-      <div class="form-card">
-        <div class="form-group">
-          <label>Training days per week</label>
-          <input type="number" id="ai-days" value="3" min="1" max="7">
-        </div>
-
-        <div class="form-group">
-          <label>Available days</label>
-          <div class="day-picker" id="day-picker">
-            <button class="day-btn" data-day="1" onclick="toggleDay(this)">Mon</button>
-            <button class="day-btn" data-day="2" onclick="toggleDay(this)">Tue</button>
-            <button class="day-btn" data-day="3" onclick="toggleDay(this)">Wed</button>
-            <button class="day-btn" data-day="4" onclick="toggleDay(this)">Thu</button>
-            <button class="day-btn" data-day="5" onclick="toggleDay(this)">Fri</button>
-            <button class="day-btn" data-day="6" onclick="toggleDay(this)">Sat</button>
-            <button class="day-btn" data-day="7" onclick="toggleDay(this)">Sun</button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Goal</label>
-          <select id="ai-goal">
-            <option value="muscle_gain">Build Muscle</option>
-            <option value="fat_loss">Burn Fat</option>
-            <option value="weight_loss">Lose Weight</option>
-            <option value="strength">Get Stronger</option>
-            <option value="endurance">Endurance</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Experience Level</label>
-          <div class="choice-grid">
-            <button class="choice-card" onclick="selectChoice('ai_exp','beginner',this)">
-              <i data-lucide="sprout"></i>
-              <span>Beginner</span>
-            </button>
-            <button class="choice-card" onclick="selectChoice('ai_exp','intermediate',this)">
-              <i data-lucide="trending-up"></i>
-              <span>Intermediate</span>
-            </button>
-            <button class="choice-card" onclick="selectChoice('ai_exp','advanced',this)">
-              <i data-lucide="zap"></i>
-              <span>Advanced</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Equipment</label>
-          <div class="choice-grid">
-            <button class="choice-card" onclick="selectChoice('ai_eq','gym',this)">
-              <i data-lucide="building-2"></i>
-              <span>Gym</span>
-            </button>
-            <button class="choice-card" onclick="selectChoice('ai_eq','home',this)">
-              <i data-lucide="home"></i>
-              <span>Home</span>
-            </button>
-            <button class="choice-card" onclick="selectChoice('ai_eq','both',this)">
-              <i data-lucide="layers"></i>
-              <span>Both</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Injuries / Limitations (optional)</label>
-          <textarea id="ai-injuries" placeholder="e.g. Lower back pain..." maxlength="300"></textarea>
-        </div>
-
-        <div id="ai-error" class="error-msg hidden"></div>
-
-        <button class="btn-primary full-width" onclick="getAISuggestion()" id="ai-generate-btn">
-          <i data-lucide="sparkles"></i> Generate My Plan
-        </button>
+    </div>
+    <div class="form-card">
+      <div class="form-group">
+        <label>Training days per week</label>
+        <input type="number" id="ai-days" value="3" min="1" max="7">
       </div>
-
-      <div id="ai-result" class="hidden">
-        <div class="ai-result-card">
-          <div id="ai-response-text"></div>
+      <div class="form-group">
+        <label>Available days</label>
+        <div class="day-picker">
+          <button class="day-btn" data-day="1" onclick="toggleDay(this)">Mon</button>
+          <button class="day-btn" data-day="2" onclick="toggleDay(this)">Tue</button>
+          <button class="day-btn" data-day="3" onclick="toggleDay(this)">Wed</button>
+          <button class="day-btn" data-day="4" onclick="toggleDay(this)">Thu</button>
+          <button class="day-btn" data-day="5" onclick="toggleDay(this)">Fri</button>
+          <button class="day-btn" data-day="6" onclick="toggleDay(this)">Sat</button>
+          <button class="day-btn" data-day="7" onclick="toggleDay(this)">Sun</button>
         </div>
-        <div class="form-card">
-          <h3>Save as Program?</h3>
-          <div class="form-group">
-            <label>Program Name</label>
-            <input type="text" id="ai-save-name">
-          </div>
-          <button class="btn-primary" onclick="saveAIProgram()" id="ai-save-btn">
-            <i data-lucide="save"></i> Save Program
+      </div>
+      <div class="form-group">
+        <label>Goal</label>
+        <select id="ai-goal">
+          <option value="muscle_gain">Build Muscle</option>
+          <option value="fat_loss">Burn Fat</option>
+          <option value="weight_loss">Lose Weight</option>
+          <option value="strength">Get Stronger</option>
+          <option value="endurance">Endurance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Experience Level</label>
+        <div class="choice-grid">
+          <button class="choice-card" onclick="selectChoice('ai_exp','beginner',this)">
+            <i data-lucide="sprout"></i><span>Beginner</span>
+          </button>
+          <button class="choice-card" onclick="selectChoice('ai_exp','intermediate',this)">
+            <i data-lucide="trending-up"></i><span>Intermediate</span>
+          </button>
+          <button class="choice-card" onclick="selectChoice('ai_exp','advanced',this)">
+            <i data-lucide="zap"></i><span>Advanced</span>
           </button>
         </div>
       </div>
+      <div class="form-group">
+        <label>Equipment</label>
+        <div class="choice-grid">
+          <button class="choice-card" onclick="selectChoice('ai_eq','gym',this)">
+            <i data-lucide="building-2"></i><span>Gym</span>
+          </button>
+          <button class="choice-card" onclick="selectChoice('ai_eq','home',this)">
+            <i data-lucide="home"></i><span>Home</span>
+          </button>
+          <button class="choice-card" onclick="selectChoice('ai_eq','both',this)">
+            <i data-lucide="layers"></i><span>Both</span>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Injuries / Limitations (optional)</label>
+        <textarea id="ai-injuries" placeholder="e.g. Lower back pain..." maxlength="300"></textarea>
+      </div>
+      <div id="ai-error" class="error-msg hidden"></div>
+      <button class="btn-primary full-width" onclick="getAISuggestion()" id="ai-generate-btn">
+        <i data-lucide="sparkles"></i> Generate My Plan
+      </button>
+    </div>
+    <div id="ai-result" class="hidden">
+      <div class="ai-result-card">
+        <div id="ai-response-text"></div>
+      </div>
+      <div class="form-card">
+        <h3>Save as Program?</h3>
+        <div class="form-group">
+          <label>Program Name</label>
+          <input type="text" id="ai-save-name">
+        </div>
+        <button class="btn-primary" onclick="saveAIProgram()" id="ai-save-btn">
+          <i data-lucide="save"></i> Save Program
+        </button>
+      </div>
     </div>
   </div>
+</div>
 
-  <script src="app.js"></script>
-  <script>
-    // Lucide ikonları render et
-    lucide.createIcons()
-  </script>
+<script src="app.js"></script>
+<script>lucide.createIcons()</script>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal" class="modal hidden">
+  <div class="modal-backdrop" onclick="confirmCancel()"></div>
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-content-body" style="padding:28px">
+      <h3 id="confirm-title" style="margin-bottom:10px; font-size:1.1rem"></h3>
+      <p id="confirm-message" style="color:var(--text-2); font-size:0.9rem; margin-bottom:24px"></p>
+      <div style="display:flex; gap:10px; justify-content:flex-end">
+        <button class="btn-secondary" onclick="confirmCancel()">Cancel</button>
+        <button class="btn-ghost-danger" id="confirm-ok-btn" onclick="confirmOk()">
+          <i data-lucide="trash-2"></i> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
 </body>
 </html>
