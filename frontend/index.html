@@ -9,10 +9,16 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav id="navbar" class="hidden">
   <div class="nav-brand">
-    <i data-lucide="zap"></i> HIT Tracker
+    <svg class="hit-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; margin-right: 10px; flex-shrink: 0; vertical-align: middle; margin-top: -3px;">
+      <path d="M4 12C6 12 8 8 12 8C16 8 18 12 20 12" stroke-dasharray="2 1"/>
+      <rect x="2" y="7" width="2" height="10" fill="currentColor" stroke="none"/>
+      <rect x="20" y="7" width="2" height="10" fill="currentColor" stroke="none"/>
+      <rect x="6" y="9" width="1.5" height="6" fill="currentColor" stroke="none"/>
+      <rect x="16.5" y="9" width="1.5" height="6" fill="currentColor" stroke="none"/>
+    </svg>
+    <span>HIT Tracker</span>
   </div>
   <div class="nav-links">
     <button data-view="dashboard" onclick="showView('dashboard')">
@@ -388,7 +394,7 @@
     </div>
     <div class="form-card">
       <div class="form-group">
-        <label>Available days</label>
+        <label>Select Your Training Days</label>
         <div class="day-picker">
           <button class="day-btn" data-day="1" onclick="toggleDay(this)">Mon</button>
           <button class="day-btn" data-day="2" onclick="toggleDay(this)">Tue</button>
@@ -398,6 +404,7 @@
           <button class="day-btn" data-day="6" onclick="toggleDay(this)">Sat</button>
           <button class="day-btn" data-day="7" onclick="toggleDay(this)">Sun</button>
         </div>
+        <small style="color:var(--text-3);margin-top:8px;display:block">Select at least 1 day</small>
       </div>
       <div class="form-group">
         <label>Goal</label>
@@ -443,82 +450,77 @@
       </div>
       <div id="ai-error" class="error-msg hidden"></div>
       <button class="btn-primary full-width" onclick="getAISuggestion()" id="ai-generate-btn">
-        <i data-lucide="sparkles"></i> Generate My Plan
+        <i data-lucide="sparkles"></i> Generate My Program
       </button>
     </div>
+
     <div id="ai-result" class="hidden">
-  <div class="ai-result-card">
-    <div id="ai-response-text"></div>
-  </div>
+      <div class="ai-result-card"><div id="ai-response-text"></div></div>
 
-  <!-- Program Kaydet -->
-  <div class="form-card">
-    <h3>Save as Program?</h3>
-    <div class="form-group">
-      <label>Program Name</label>
-      <input type="text" id="ai-save-name">
-    </div>
-    <button class="btn-primary" onclick="saveAIProgram()" id="ai-save-btn">
-      <i data-lucide="save"></i> Save Program
-    </button>
-  </div>
-
-  <!-- Egzersiz Ekle (program kaydedilince açılır) -->
-  <div id="ai-add-exercises" class="form-card hidden">
-    <h3>Add Exercises to Program</h3>
-    <p style="color:var(--text-2);font-size:0.88rem;margin-bottom:20px">
-      AI suggestion is on the left. Search and add exercises below.
-    </p>
-
-    <div class="form-group">
-      <label>Search Exercise</label>
-      <input type="text" id="ai-ex-search"
-        placeholder="Type exercise name..."
-        oninput="searchAIExercise()">
-    </div>
-
-    <div class="two-col">
-      <div class="form-group">
-        <label>Exercise</label>
-        <select id="ai-ex-select" size="4" style="height:auto;padding:4px"></select>
+      <!-- Program Kaydet — training.js ile aynı form yapısı -->
+      <div class="form-card">
+        <h3>Save as Program</h3>
+        <div class="form-group">
+          <label>Program Name</label>
+          <input type="text" id="ai-save-name">
+        </div>
+        <button class="btn-primary" onclick="saveAIProgram()" id="ai-save-btn">
+          <i data-lucide="save"></i> Save Program
+        </button>
       </div>
-      <div class="form-group">
-        <label>Day</label>
-        <select id="ai-ex-day">
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
-          <option value="7">Sunday</option>
-        </select>
+
+      <!-- Egzersiz Ekle — program kaydedilince açılır -->
+      <div id="ai-add-exercises" class="form-card hidden">
+        <h3>Add Exercises to Program</h3>
+        <p style="color:var(--text-2);font-size:0.88rem;margin-bottom:20px">
+          Use the AI suggestion above as reference. Add exercises below.
+        </p>
+        <div class="form-group">
+          <label>Search Exercise</label>
+          <input type="text" id="ai-ex-search"
+            placeholder="Type exercise name..."
+            oninput="searchAIExercise()">
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Exercise</label>
+            <select id="ai-ex-select" size="4" style="height:auto;padding:4px"></select>
+          </div>
+          <div class="form-group">
+            <label>Day</label>
+            <select id="ai-ex-day">
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+              <option value="7">Sunday</option>
+            </select>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Sets</label>
+            <input type="number" id="ai-ex-sets" value="1" min="1" max="10">
+          </div>
+          <div class="form-group">
+            <label>Target Reps</label>
+            <input type="number" id="ai-ex-reps" placeholder="8" min="1">
+          </div>
+        </div>
+        <div id="ai-ex-error" class="error-msg hidden"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-primary" onclick="addExToAIProgram()">
+            <i data-lucide="plus"></i> Add Exercise
+          </button>
+          <button class="btn-secondary" onclick="goToAIProgram()">
+            <i data-lucide="arrow-right"></i> Go to Program
+          </button>
+        </div>
+        <div id="ai-added-list" style="margin-top:20px"></div>
       </div>
     </div>
-
-    <div class="two-col">
-      <div class="form-group">
-        <label>Sets</label>
-        <input type="number" id="ai-ex-sets" value="1" min="1" max="10">
-      </div>
-      <div class="form-group">
-        <label>Target Reps</label>
-        <input type="number" id="ai-ex-reps" placeholder="8" min="1">
-      </div>
-    </div>
-
-    <div id="ai-ex-error" class="error-msg hidden"></div>
-
-    <div style="display:flex;gap:10px">
-      <button class="btn-primary" onclick="addExToAIProgram()">
-        <i data-lucide="plus"></i> Add Exercise
-      </button>
-      <button class="btn-secondary" onclick="goToAIProgram()">
-        <i data-lucide="arrow-right"></i> Go to Program
-      </button>
-    </div>
-
-    <div id="ai-added-list" style="margin-top:20px"></div>
   </div>
 </div>
 
@@ -540,6 +542,14 @@
 <!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- JS MODÜLLER — sıra önemli -->
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/exercises.js"></script>
+<script src="js/training.js"></script>
+<script src="js/ai.js"></script>
 <script src="app.js"></script>
 <script>lucide.createIcons()</script>
 </body>
