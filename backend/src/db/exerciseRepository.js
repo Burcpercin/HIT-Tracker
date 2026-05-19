@@ -2,13 +2,13 @@ const pool = require('./pool')
 
 const exerciseRepository = {
 
-  async findAll() {
+  async findAll(userId = null) {
   const result = await pool.query(
-    `SELECT id, name, muscle_group, description, 
-            required_rest_days, equipment, is_custom
-     FROM exercises 
-     ORDER BY is_custom DESC, name ASC`
-    // is_custom DESC → kullanıcının eklediği egzersizler üstte
+    `SELECT * FROM exercises 
+     WHERE is_custom = false 
+     OR (is_custom = true AND user_id = $1)
+     ORDER BY is_custom ASC, name ASC`,
+    [userId]
   )
   return result.rows
 },
@@ -28,15 +28,16 @@ const exerciseRepository = {
     return result.rows
   },
 
-  async create(data) {
-    const { name, muscle_group, description, required_rest_days } = data
-    const result = await pool.query(
-      `INSERT INTO exercises (name, muscle_group, description, required_rest_days)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [name, muscle_group, description, required_rest_days]
-    )
-    return result.rows[0]
-  },
+  async create(data, userId = null) {
+  const { name, muscle_group, description, required_rest_days } = data
+  const result = await pool.query(
+    `INSERT INTO exercises 
+      (name, muscle_group, description, required_rest_days, is_custom, user_id)
+     VALUES ($1, $2, $3, $4, true, $5) RETURNING *`,
+    [name, muscle_group, description, required_rest_days, userId]
+  )
+  return result.rows[0]
+},
 
   async update(id, data) {
     const { name, muscle_group, description, required_rest_days } = data
@@ -49,12 +50,18 @@ const exerciseRepository = {
     return result.rows[0]
   },
 
-  async delete(id) {
-    const result = await pool.query(
-      'DELETE FROM exercises WHERE id=$1 RETURNING *', [id]
-    )
-    return result.rows[0]
-  }
+async delete(id, userId = null) {
+  // Custom egzersiz mi ve bu kullanıcıya mı ait?
+  const result = await pool.query(
+    `DELETE FROM exercises 
+     WHERE id = $1 
+     AND is_custom = true 
+     AND user_id = $2 
+     RETURNING *`,
+    [id, userId]
+  )
+  return result.rows[0]
+}
 }
 
 module.exports = exerciseRepository

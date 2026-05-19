@@ -2,13 +2,15 @@ const exerciseRepository = require('../db/exerciseRepository')
 
 const exerciseService = {
 
-  async getAllExercises(muscleGroup) {
-    // Arama filtresi varsa filtrele, yoksa hepsini getir
-    if (muscleGroup) {
-      return await exerciseRepository.findByMuscleGroup(muscleGroup)
-    }
-    return await exerciseRepository.findAll()
-  },
+ async getAllExercises(muscleGroup, userId) {
+  if (muscleGroup) {
+    const all = await exerciseRepository.findAll(userId)
+    return all.filter(e =>
+      e.muscle_group.toLowerCase().includes(muscleGroup.toLowerCase())
+    )
+  }
+  return await exerciseRepository.findAll(userId)
+},
 
   async getExerciseById(id) {
     const exercise = await exerciseRepository.findById(id)
@@ -18,15 +20,12 @@ const exerciseService = {
     return exercise
   },
 
-  async createExercise(data) {
-    // Mentzer kuralı: dinlenme süresi minimum 3 gün olmalı
-    if (data.required_rest_days < 3) {
-      throw new Error(
-        'Mentzer principle violated: minimum rest days must be 3. Recovery is growth.'
-      )
-    }
-    return await exerciseRepository.create(data)
-  },
+async createExercise(data, userId) {
+  if (data.required_rest_days < 3) {
+    throw new Error('Mentzer principle violated: minimum rest days must be 3.')
+  }
+  return await exerciseRepository.create(data, userId)
+},
 
   async updateExercise(id, data) {
     await this.getExerciseById(id) // önce var mı kontrol et
@@ -38,13 +37,13 @@ const exerciseService = {
     return await exerciseRepository.update(id, data)
   },
 
-  async deleteExercise(id) {
-    const deleted = await exerciseRepository.delete(id)
-    if (!deleted) {
-      throw new Error('Exercise not found')
-    }
-    return deleted
+  async deleteExercise(id, userId) {
+  const deleted = await exerciseRepository.delete(id, userId)
+  if (!deleted) {
+    throw new Error('Exercise not found or you do not have permission to delete it')
   }
+  return deleted
+}
 }
 
 module.exports = exerciseService
