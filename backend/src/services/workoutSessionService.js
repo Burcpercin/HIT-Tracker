@@ -1,5 +1,4 @@
 const workoutSessionRepository = require('../db/workoutSessionRepository')
-const exerciseRepository = require('../db/exerciseRepository')
 
 const workoutSessionService = {
 
@@ -18,76 +17,30 @@ const workoutSessionService = {
     return await workoutSessionRepository.create(userId, data)
   },
 
-  async updateSession(id, userId, data) {
-    await this.getSessionById(id, userId)
-    const updated = await workoutSessionRepository.update(id, userId, data)
-    if (!updated) throw new Error('Session not found')
-    return updated
-  },
-
   async deleteSession(id, userId) {
     const deleted = await workoutSessionRepository.delete(id, userId)
     if (!deleted) throw new Error('Session not found')
     return deleted
   },
 
-  // MENTZER KURALI 1: Yeterince dinlendi mi?
-  async checkRecoveryStatus(userId, muscleGroup) {
-    const last = await workoutSessionRepository.findLastSessionForMuscleGroup(
-      userId, muscleGroup
-    )
-    if (!last) return { ready: true, message: 'No previous session found. Ready to train!' }
-
-    const lastDate = new Date(last.session_date)
-    const today = new Date()
-    const daysPassed = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24))
-    const required = last.required_rest_days
-
-    if (daysPassed < required) {
-      return {
-        ready: false,
-        daysPassed,
-        daysRequired: required,
-        daysRemaining: required - daysPassed,
-        message: `Not recovered yet! Mentzer says: wait ${required - daysPassed} more days. Recovery IS the workout.`
-      }
-    }
-
-    return {
-      ready: true,
-      daysPassed,
-      daysRequired: required,
-      message: `Fully recovered after ${daysPassed} days. Time to train with maximum intensity!`
-    }
-  },
-
-  // MENTZER KURALI 2: Progressive overload kontrolü
   async addExerciseToSession(sessionId, userId, data) {
+    // Session bu kullanıcıya ait mi?
     await this.getSessionById(sessionId, userId)
 
-    const exercise = await exerciseRepository.findById(data.exercise_id)
-    if (!exercise) throw new Error('Exercise not found')
+    const { exercise_id, weight_kg, reps, reached_failure } = data
 
     // Önceki performansla karşılaştır
-    const lastPerformance = await workoutSessionRepository.findLastPerformance(
-      userId, data.exercise_id
+    const prev = await workoutSessionRepository.findLastPerformance(
+      userId, exercise_id
     )
 
     let progressWarning = null
-    if (lastPerformance) {
-      if (parseFloat(data.weight_kg) < parseFloat(lastPerformance.weight_kg)) {
-        progressWarning = `Warning: Weight decreased from ${lastPerformance.weight_kg}kg to ${data.weight_kg}kg. Mentzer demands progressive overload!`
-      }
+    if (prev && parseFloat(weight_kg) < parseFloat(prev.weight_kg)) {
+      progressWarning = `Weight decreased from ${prev.weight_kg}kg. Mentzer demands progressive overload!`
     }
 
-    // MENTZER KURALI 3: Failure'a ulaşmadan antrenman olmaz
-    if (data.reached_failure === false) {
-      progressWarning = (progressWarning || '') +
-        ' Note: Mentzer principle — train to momentary muscular failure for maximum growth stimulus.'
-    }
-
-    const result = await workoutSessionRepository.addExerciseToSession(sessionId, data)
-    return { ...result, progressWarning, previousPerformance: lastPerformance }
+    const result = await workoutSessionRepository.addExercise(sessionId, data)
+    return { ...result, progressWarning, previousPerformance: prev }
   }
 }
 

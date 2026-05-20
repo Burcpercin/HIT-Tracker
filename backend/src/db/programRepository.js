@@ -47,15 +47,15 @@ const programRepository = {
   },
 
   async create(userId, data) {
-    const { name, description, goal, days_per_week } = data
-    const result = await pool.query(
-      `INSERT INTO workout_programs 
-         (user_id, name, description, goal, days_per_week)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [userId, name, description, goal, days_per_week]
-    )
-    return result.rows[0]
-  },
+  const { name, description, goal, days_per_week } = data
+  const result = await pool.query(
+    `INSERT INTO workout_programs 
+      (user_id, name, description, goal, days_per_week, is_active)
+     VALUES ($1, $2, $3, $4, $5, false) RETURNING *`,
+    [userId, name, description, goal, days_per_week]
+  )
+  return result.rows[0]
+},
 
   async update(id, userId, data) {
     const { name, description, goal, days_per_week } = data
