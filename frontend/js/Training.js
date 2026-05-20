@@ -501,7 +501,7 @@ function cancelWorkout() {
     document.getElementById('active-workout').classList.add('hidden')
     document.getElementById('workout-start').classList.remove('hidden')
     lucide.createIcons()
-  }, 'Cancel Workout', 'danger')
+  }, 'Abort Workout', 'danger')
 }
 
 // ── HISTORY ──────────────────────────────────────────────────

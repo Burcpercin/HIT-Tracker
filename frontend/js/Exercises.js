@@ -60,11 +60,29 @@ function renderExercises(list) {
   }
   container.innerHTML = list.map(ex => `
     <div class="ex-card" onclick="openExModal(${ex.id})">
-      <div class="ex-card-img">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="1.5">
-          <path d="M6 4v16M18 4v16M4 8h4M16 8h4M4 16h4M16 16h4"/>
-        </svg>
+      <div class="ex-card-img"
+        ${ex.image_url ? `
+          data-img1="http://localhost:3000${ex.image_url}"
+          data-img2="${ex.image_url_2 ? `http://localhost:3000${ex.image_url_2}` : ''}"
+        ` : ''}>
+        ${ex.image_url
+          ? `<img
+              src="http://localhost:3000${ex.image_url}"
+              alt="${ex.name}"
+              style="width:100%;height:100%;object-fit:cover"
+              onerror="this.style.display='none'">`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;
+            justify-content:center;background:var(--bg-3)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
+              style="width:64px;height:64px;opacity:0.25">
+              <rect x="10" y="44" width="80" height="12" rx="6" fill="var(--gold)"/>
+              <rect x="10" y="30" width="18" height="40" rx="8" fill="var(--gold)"/>
+              <rect x="72" y="30" width="18" height="40" rx="8" fill="var(--gold)"/>
+              <rect x="2"  y="36" width="12" height="28" rx="6" fill="var(--gold)"/>
+              <rect x="86" y="36" width="12" height="28" rx="6" fill="var(--gold)"/>
+            </svg>
+          </div>`
+        }
       </div>
       <div class="ex-card-body">
         <h4>${ex.name}</h4>
@@ -75,6 +93,36 @@ function renderExercises(list) {
       </div>
     </div>
   `).join('')
+
+  // Hover ile resim değişimi
+  attachImageHover()
+}
+
+function attachImageHover() {
+  let hoverInterval = null
+
+  document.querySelectorAll('.ex-card-img[data-img1]').forEach(card => {
+    const img   = card.querySelector('img')
+    const img1  = card.dataset.img1
+    const img2  = card.dataset.img2
+
+    // img2 yoksa efekt yok
+    if (!img || !img2) return
+
+    card.addEventListener('mouseenter', () => {
+      let show1 = false
+      hoverInterval = setInterval(() => {
+        img.src = show1 ? img1 : img2
+        show1   = !show1
+      }, 1000)
+    })
+
+    card.addEventListener('mouseleave', () => {
+      clearInterval(hoverInterval)
+      hoverInterval = null
+      img.src = img1  // orijinal resme dön
+    })
+  })
 }
 
 // Egzersiz detay modalını aç
@@ -117,6 +165,19 @@ function openExModal(id) {
 
   document.getElementById('modal-body').innerHTML = `
     <div class="modal-content-body">
+      <div class="modal-content-body">
+    ${ex.image_url ? `
+      <div style="display:flex;gap:12px;margin-bottom:20px;justify-content:center">
+        <img src="http://localhost:3000${ex.image_url}"
+          style="width:48%;border-radius:var(--radius-sm);object-fit:cover;background:var(--bg-3)"
+          onerror="this.style.display='none'">
+        ${ex.image_url_2 ? `
+          <img src="http://localhost:3000${ex.image_url_2}"
+            style="width:48%;border-radius:var(--radius-sm);object-fit:cover;background:var(--bg-3)"
+            onerror="this.style.display='none'">
+        ` : ''}
+      </div>
+    ` : ''}
       <h2 class="modal-title">${ex.name}</h2>
       <div class="modal-badges">
         <span class="badge badge-gold">${ex.muscle_group}</span>
