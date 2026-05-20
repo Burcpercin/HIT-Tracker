@@ -159,26 +159,28 @@ async function main() {
 
       try {
         await pool.query(
-          `INSERT INTO exercises 
-            (name, muscle_group, description, required_rest_days,
-             equipment, image_url, is_custom, level,
-             secondary_muscles, instructions)
-           VALUES ($1, $2, $3, $4, $5, $6, false, $7, $8, $9)
-           ON CONFLICT (name) DO UPDATE SET
-             image_url = EXCLUDED.image_url,
-             description = EXCLUDED.description`,
-          [
-            data.name.trim(),
-            muscleGroup,
-            description,
-            required_rest_days,
-            equipment,
-            image_url,
-            data.level,
-            data.secondaryMuscles || [],
-            data.instructions || []
-          ]
-        )
+  `INSERT INTO exercises 
+    (name, muscle_group, description, required_rest_days,
+     equipment, image_url, image_url_2, is_custom, level,
+     secondary_muscles, instructions)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10)
+   ON CONFLICT (name) DO UPDATE SET
+     image_url   = EXCLUDED.image_url,
+     image_url_2 = EXCLUDED.image_url_2,
+     description = EXCLUDED.description`,
+  [
+    data.name.trim(),
+    muscleGroup,
+    description,
+    required_rest_days,
+    equipment,
+    image_url,
+    image_url_2,
+    data.level,
+    data.secondaryMuscles || [],
+    data.instructions || []
+  ]
+)
         saved++
         if (saved % 50 === 0) console.log(`  ✅ ${saved} saved...`)
       } catch (err) {

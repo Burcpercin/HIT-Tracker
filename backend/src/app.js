@@ -19,6 +19,10 @@ const app = express()
 // 1. Global Middleware
 app.use(cors())
 app.use(express.json())
+app.use('/images', express.static(
+  path.join(__dirname, 'db', 'exercises_data')
+))
+
 
 // 2. Statik dosyalar — route'lardan ÖNCE gelmeli
 app.use(express.static(path.join(__dirname, '../../frontend')))
