@@ -74,7 +74,7 @@ HIT Tracker is a full-stack single-page application that helps users plan, execu
 | Database | PostgreSQL |
 | Authentication | JWT + bcrypt |
 | API Docs | Swagger (swagger-jsdoc + swagger-ui-express) |
-| AI Integration | Google Gemini API (gemini-1.5-flash) |
+| AI Integration | Google Gemini API (gemini-2.5-flash) |
 | Testing | Jest + cross-env |
 | Frontend | Vanilla JavaScript (no framework) |
 | Icons | Lucide |
@@ -362,7 +362,7 @@ HIT Tracker, kullanıcıların Mentzer'in temel prensiplerine göre antrenman pl
 | Veritabanı | PostgreSQL |
 | Kimlik Doğrulama | JWT + bcrypt |
 | API Dokümantasyonu | Swagger (swagger-jsdoc + swagger-ui-express) |
-| AI Entegrasyonu | Google Gemini API (gemini-1.5-flash) |
+| AI Entegrasyonu | Google Gemini API (gemini-2.5-flash) |
 | Test | Jest + cross-env |
 | Frontend | Vanilla JavaScript (framework yok) |
 | İkonlar | Lucide |
